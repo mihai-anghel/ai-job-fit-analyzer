@@ -1,0 +1,5 @@
+:host-context(.print-mode) .print-description,
+:host-context(.print-mode) .print-list-item,
+:host-context(.print-mode) .print-bold-item {
+    color: #164e63 !important; /* cyan-800 */
+}

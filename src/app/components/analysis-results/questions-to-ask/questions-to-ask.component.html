@@ -1,0 +1,10 @@
+@if (result().questionsToAsk && result().questionsToAsk.length > 0) {
+  <div>
+    <p class="text-sm text-orange-200/80 mb-4 print-atomic-item print-description">Use these questions to probe potential concerns and validate the candidate's key strengths during the interview.</p>
+    <ul class="space-y-3 list-decimal list-inside text-orange-200/90 print-list">
+      @for (question of result().questionsToAsk; track $index) {
+        <li class="print-question-item">{{ question }}</li>
+      }
+    </ul>
+  </div>
+}

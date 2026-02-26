@@ -1,0 +1,29 @@
+<div class="space-y-3">
+  <h2 class="text-xl font-bold text-white">{{ title() }}</h2>
+
+  <div class="flex justify-between items-center min-h-[30px]">
+    <label [for]="idPrefix() + '-file-upload'" class="text-sm font-medium text-purple-400 hover:text-purple-300 cursor-pointer transition">
+      <i class="fa-solid fa-upload mr-2"></i>
+      <span>Or, upload a file to populate</span>
+    </label>
+    <input type="file" [id]="idPrefix() + '-file-upload'" (change)="onFileChange($event)" accept=".pdf,.docx,.txt" class="hidden">
+
+    @if (fileName()) {
+      <div class="flex items-center space-x-2 text-purple-300 bg-slate-700/50 px-3 py-1 rounded-full text-sm">
+        <i class="fa-solid fa-file-lines"></i>
+        <span class="truncate max-w-[200px] sm:max-w-xs">{{ fileName() }}</span>
+        <button (click)="onClearFile($event)" class="text-slate-400 hover:text-white z-10 flex-shrink-0">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+    }
+  </div>
+
+  <textarea 
+    (input)="textValueChange.emit($any($event.target).value)" 
+    [value]="textValue()" 
+    rows="6" 
+    class="w-full h-48 bg-slate-700 border border-slate-600 rounded-lg p-2 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition" 
+    [placeholder]="'Paste the ' + title().toLowerCase() + ' here, or upload a file.'">
+  </textarea>
+</div>

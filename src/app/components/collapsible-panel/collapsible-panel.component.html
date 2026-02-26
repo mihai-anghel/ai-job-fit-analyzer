@@ -1,0 +1,15 @@
+<div class="rounded-2xl border print-panel" [class]="panelClass()">
+  <div class="p-6">
+    <button (click)="toggle()" class="w-full flex justify-between items-center text-left print-header">
+      <h2 class="text-2xl font-bold text-white flex items-center gap-2">
+        <i class="fa-lg print-header-icon" [class]="iconClass()"></i>
+        <span class="print-header-title">{{ title() }}</span>
+      </h2>
+      <i class="fa-solid fa-chevron-down text-slate-400 transition-transform hide-in-print" [class.rotate-180]="!isOpen()"></i>
+    </button>
+    
+    <div class="collapsible-content mt-4" [class.hidden]="!isOpen()">
+      <ng-content></ng-content>
+    </div>
+  </div>
+</div>

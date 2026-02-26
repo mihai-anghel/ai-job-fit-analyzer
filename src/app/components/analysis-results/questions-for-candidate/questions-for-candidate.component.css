@@ -1,0 +1,4 @@
+:host-context(.print-mode) .print-description,
+:host-context(.print-mode) .print-question-item {
+    color: #134e4a !important; /* teal-800 */
+}

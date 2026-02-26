@@ -1,0 +1,5 @@
+{
+  "name": "AI Job Fit Analyzer",
+  "description": "An intelligent tool that analyzes a candidate's CV against a job description to produce a comprehensive fit analysis, including match scores, dimensional analysis, strengths, and concerns using the Gemini API.",
+  "requestFramePermissions": []
+}

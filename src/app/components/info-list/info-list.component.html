@@ -1,0 +1,17 @@
+<div class="grid grid-cols-1 sm:grid-cols-3 gap-x-6 gap-y-4 text-sm">
+  @for (item of items(); track $index) {
+    <div class="flex items-center gap-3">
+      <i 
+        class="w-5 text-center print-info-icon" 
+        [class]="item.iconClass + ' ' + iconColorClass()"
+        [class.theme-candidate]="theme() === 'candidate'"
+        [class.theme-job]="theme() === 'job'"></i>
+      <p class="print-info-text">
+        <span class="print-primary-text" [class]="item.primaryTextClass || 'text-slate-100'">{{ item.primaryText }}</span>
+        @if (item.secondaryText) {
+          <span class="print-secondary-text" [class]="item.secondaryTextClass || 'text-slate-400 text-xs ml-1'">{{ item.secondaryText }}</span>
+        }
+      </p>
+    </div>
+  }
+</div>

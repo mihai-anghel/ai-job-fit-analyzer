@@ -1,0 +1,8 @@
+<div class="flex flex-wrap gap-3 print-atomic-item">
+  @for (skill of highlightedSkills(); track skill) {
+    <span class="bg-indigo-900/80 text-indigo-200 text-sm font-medium px-3 py-1 rounded-full print-skill-tag">{{skill}}</span>
+  }
+   @if(highlightedSkills().length === 0) {
+    <p class="text-slate-500 italic print-empty-text">No specific skills were highlighted by the user.</p>
+  }
+</div>

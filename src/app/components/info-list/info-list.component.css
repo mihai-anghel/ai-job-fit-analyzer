@@ -1,0 +1,16 @@
+:host-context(.print-mode) .print-info-text {
+    /* This class is a semantic marker; color is handled by its children. */
+}
+
+:host-context(.print-mode) .print-info-icon {
+    color: #1f2937 !important; /* gray-800 */
+}
+
+/* Print mode styles for text elements */
+:host-context(.print-mode) .print-primary-text {
+    color: #1f2937 !important; /* gray-800 */
+}
+
+:host-context(.print-mode) .print-secondary-text {
+    color: #4b5563 !important; /* gray-600 */
+}

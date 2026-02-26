@@ -1,0 +1,192 @@
+@if (result(); as result) {
+  <div>
+    <!-- Visible Results -->
+    <div class="grid grid-cols-1 gap-y-4 max-w-6xl mx-auto">
+
+      <app-collapsible-panel
+        title="How to Interpret This Report"
+        iconClass="fa-solid fa-circle-info"
+        panelClass="interpretation-guide-panel"
+        initialState="open">
+        <div class="space-y-3 text-slate-300 print-atomic-item print-description">
+          <p><strong class="font-semibold text-purple-300">The Score is a Starting Point, Not a Final Verdict.</strong> Use it as a signal to investigate further, not as a reason to automatically reject a candidate. The real value is in understanding *why* the score is what it is.</p>
+          <p><strong class="font-semibold text-purple-300">The "Why" is in the Details.</strong> Pay close attention to the Dimensional Analysis, Strengths, and Concerns. A low score in one dimension (like "Compensation Fit") is a valuable insight for negotiation, not a failure.</p>
+          <p><strong class="font-semibold text-purple-300">This Tool Augments, It Doesn't Replace.</strong> The final hiring decision must always be human. Use the generated interview questions to validate the AI's findings and have a more insightful conversation.</p>
+        </div>
+      </app-collapsible-panel>
+      
+      <app-collapsible-panel 
+        title="Overall Analysis"
+        iconClass="fa-solid fa-person-circle-check summary-icon"
+        panelClass="evaluation-summary-panel"
+        initialState="open">
+        <app-evaluation-summary 
+          [result]="result">
+        </app-evaluation-summary>
+      </app-collapsible-panel>
+
+      <app-collapsible-panel
+        [title]="'Candidate Profile' + (result.candidateInfo.name ? ': ' + result.candidateInfo.name : '')"
+        iconClass="fa-solid fa-user-tie candidate-profile-icon"
+        panelClass="candidate-profile-panel"
+        initialState="open">
+        <app-candidate-profile
+          [result]="result"
+          [expectedSalary]="expectedSalary()" 
+          [initialEstimatedCandidateSalary]="initialEstimatedCandidateSalary()"
+          [source]="candidateSalarySource()">
+        </app-candidate-profile>
+      </app-collapsible-panel>
+
+      <app-collapsible-panel
+        title="Job Summary"
+        iconClass="fa-solid fa-briefcase job-summary-icon"
+        panelClass="job-summary-panel"
+        initialState="open">
+        <app-job-summary 
+          [result]="result" 
+          [finalJobSalary]="finalJobSalary()"
+          [initialEstimatedJobSalary]="initialEstimatedJobSalary()"
+          [source]="jobSalarySource()">
+        </app-job-summary>
+      </app-collapsible-panel>
+      
+      <app-collapsible-panel
+        title="Highlighted Candidate Skills"
+        iconClass="fa-solid fa-star highlighted-skills-icon"
+        panelClass="highlighted-skills-panel"
+        initialState="open">
+        <app-highlighted-skills 
+          [highlightedSkills]="highlightedSkills()">
+        </app-highlighted-skills>
+      </app-collapsible-panel>
+      
+      <app-collapsible-panel
+        title="Candidate's Unique Strengths"
+        iconClass="fa-solid fa-lightbulb unique-strengths-icon"
+        panelClass="unique-strengths-panel"
+        initialState="open">
+        <app-unique-strengths
+          [result]="result">
+        </app-unique-strengths>
+      </app-collapsible-panel>
+      
+      <app-collapsible-panel
+        title="Suggested Interview Questions"
+        iconClass="fa-solid fa-circle-question questions-to-ask-icon"
+        panelClass="questions-to-ask-panel"
+        initialState="open">
+        <app-questions-to-ask
+          [result]="result">
+        </app-questions-to-ask>
+      </app-collapsible-panel>
+
+      <app-collapsible-panel
+        title="Questions the Candidate Can Ask"
+        iconClass="fa-solid fa-person-circle-question questions-for-candidate-icon"
+        panelClass="questions-for-candidate-panel"
+        initialState="open">
+        <app-questions-for-candidate
+          [result]="result">
+        </app-questions-for-candidate>
+      </app-collapsible-panel>
+
+      <!-- Actions -->
+      <div class="actions-container text-center pt-8 flex flex-wrap justify-center gap-4">
+        <button (click)="refine.emit()" class="bg-purple-700 hover:bg-purple-600 text-white font-bold py-3 px-6 rounded-lg transition">
+            <i class="fa-solid fa-sliders mr-2"></i>
+            Refine Analysis
+        </button>
+        <button (click)="exportToPdf()" [disabled]="isExporting()" class="bg-slate-700 hover:bg-slate-600 text-white font-bold py-3 px-6 rounded-lg transition disabled:opacity-50 disabled:cursor-wait">
+          @if (isExporting()) {
+            <span class="flex items-center justify-center">
+              <i class="fa-solid fa-spinner animate-spin mr-2"></i>
+              Exporting...
+            </span>
+          } @else {
+            <span><i class="fa-solid fa-file-pdf mr-2"></i>Export to PDF</span>
+          }
+        </button>
+        <button (click)="startOver.emit()" class="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-bold py-3 px-6 rounded-lg transition">
+          <i class="fa-solid fa-arrows-rotate mr-2"></i>
+          Analyze Another
+        </button>
+      </div>
+
+    </div>
+
+    <!-- Hidden Area for PDF Export -->
+    <div #printArea class="print-area">
+      <div class="grid grid-cols-1 gap-y-4">
+        <app-collapsible-panel 
+          title="Overall Analysis"
+          iconClass="fa-solid fa-person-circle-check summary-icon"
+          panelClass="evaluation-summary-panel">
+          <app-evaluation-summary 
+            [result]="result">
+          </app-evaluation-summary>
+        </app-collapsible-panel>
+
+        <app-collapsible-panel
+          [title]="'Candidate Profile' + (result.candidateInfo.name ? ': ' + result.candidateInfo.name : '')"
+          iconClass="fa-solid fa-user-tie candidate-profile-icon"
+          panelClass="candidate-profile-panel">
+          <app-candidate-profile
+            [result]="result"
+            [expectedSalary]="expectedSalary()" 
+            [initialEstimatedCandidateSalary]="initialEstimatedCandidateSalary()"
+            [source]="candidateSalarySource()">
+          </app-candidate-profile>
+        </app-collapsible-panel>
+
+        <app-collapsible-panel
+          title="Job Summary"
+          iconClass="fa-solid fa-briefcase job-summary-icon"
+          panelClass="job-summary-panel">
+          <app-job-summary 
+            [result]="result" 
+            [finalJobSalary]="finalJobSalary()"
+            [initialEstimatedJobSalary]="initialEstimatedJobSalary()"
+            [source]="jobSalarySource()">
+          </app-job-summary>
+        </app-collapsible-panel>
+        
+        <app-collapsible-panel
+          title="Highlighted Candidate Skills"
+          iconClass="fa-solid fa-star highlighted-skills-icon"
+          panelClass="highlighted-skills-panel">
+          <app-highlighted-skills 
+            [highlightedSkills]="highlightedSkills()">
+          </app-highlighted-skills>
+        </app-collapsible-panel>
+
+        <app-collapsible-panel
+          title="Candidate's Unique Strengths"
+          iconClass="fa-solid fa-lightbulb unique-strengths-icon"
+          panelClass="unique-strengths-panel">
+          <app-unique-strengths
+            [result]="result">
+          </app-unique-strengths>
+        </app-collapsible-panel>
+        
+        <app-collapsible-panel
+          title="Suggested Interview Questions"
+          iconClass="fa-solid fa-circle-question questions-to-ask-icon"
+          panelClass="questions-to-ask-panel">
+          <app-questions-to-ask
+            [result]="result">
+          </app-questions-to-ask>
+        </app-collapsible-panel>
+
+        <app-collapsible-panel
+          title="Questions the Candidate Can Ask"
+          iconClass="fa-solid fa-person-circle-question questions-for-candidate-icon"
+          panelClass="questions-for-candidate-panel">
+          <app-questions-for-candidate
+            [result]="result">
+          </app-questions-for-candidate>
+        </app-collapsible-panel>
+      </div>
+    </div>
+  </div>
+}

@@ -1,0 +1,40 @@
+<div [class.print-metric-feedback-layout]="feedback()">
+  <div class="flex justify-between items-baseline mb-1">
+    <div class="flex items-center gap-2">
+      <p class="font-medium text-slate-200 print-item-label print-dimension-label">{{ label() }}</p>
+      @if (explanation()) {
+        <span class="group relative inline-flex items-center text-slate-400 hide-in-print">
+          <i class="fa-solid fa-circle-info text-xs"></i>
+          <span class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-max max-w-xs p-2 bg-slate-900 text-slate-300 text-xs rounded-md invisible group-hover:visible transition-opacity opacity-0 group-hover:opacity-100 z-10 border border-slate-700 shadow-lg">
+            {{ explanation() }}
+          </span>
+        </span>
+      }
+    </div>
+    <p 
+      class="font-bold text-lg print-dimension-score" 
+      [class.score-high]="scoreSentiment() === 'high'"
+      [class.score-medium]="scoreSentiment() === 'medium'"
+      [class.score-low]="scoreSentiment() === 'low'">
+      {{ score() }}/100
+    </p>
+  </div>
+  <div class="w-full bg-slate-700 rounded-full mb-2 bar-container" 
+       [class.h-1.5]="barHeight() === 'small'" 
+       [class.h-2.5]="barHeight() === 'medium'">
+    <div 
+      class="rounded-full progress-bar" 
+      [class.score-high]="scoreSentiment() === 'high'"
+      [class.score-medium]="scoreSentiment() === 'medium'"
+      [class.score-low]="scoreSentiment() === 'low'"
+      [class.h-1.5]="barHeight() === 'small'"
+      [class.h-2.5]="barHeight() === 'medium'"
+      [style.width.%]="score()"></div>
+  </div>
+  @if (feedback()) {
+    <p class="text-sm text-slate-400 italic print-item-feedback">
+      <i class="fa-solid fa-lightbulb mr-1"></i>
+      {{ feedback() }}
+    </p>
+  }
+</div>

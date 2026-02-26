@@ -1,0 +1,84 @@
+<main class="p-4 sm:p-6 lg:p-8 relative">
+  <header class="text-center mb-6">
+    <h1 class="text-4xl sm:text-5xl font-bold text-white">AI Job Fit Analyzer</h1>
+    <p class="mt-3 text-lg text-purple-300 max-w-2xl mx-auto">Analyze a CV against a Job Description for an instant, AI-powered evaluation.</p>
+  </header>
+
+  @if (userError(); as error) {
+    <div class="bg-red-800/50 border border-red-500/50 text-red-200 p-4 mb-6 rounded-xl flex justify-between items-center max-w-6xl mx-auto" role="alert">
+      <div>
+        <p class="font-bold">An Error Occurred</p>
+        <p>{{ error }}</p>
+      </div>
+      <button (click)="userError.set(null)" class="text-red-200 hover:text-white p-2">
+        <i class="fa-solid fa-xmark fa-lg"></i>
+      </button>
+    </div>
+  }
+
+  @switch (view()) {
+    @case ('input') {
+      <app-input-form
+        (jdTextChange)="handleTextChange('jd', $event)"
+        (cvTextChange)="handleTextChange('cv', $event)"
+        [jdText]="appState.jdText()"
+        [cvText]="appState.cvText()"
+        [jdFileName]="appState.jdFileName()"
+        [cvFileName]="appState.cvFileName()"
+        [isAnalyzeDisabled]="isAnalyzeDisabled()"
+        [availableProviders]="appState.availableProviders()"
+        [provider]="appState.provider()"
+        (providerChange)="handleProviderChange($event)"
+        [availableModels]="availableModels()"
+        [model]="appState.currentModel()"
+        (modelChange)="handleModelChange($event)"
+        (fileChange)="handleFileChange($event)"
+        (clearFile)="clearFile($event)"
+        (analyze)="startAnalysis()"
+        (reset)="resetForm()"
+        [apiKey]="appState.currentApiKey()"
+        (apiKeyChange)="handleApiKeyChange($event)"
+        [hasEnvironmentKey]="appState.hasEnvironmentKey && appState.provider() === 'gemini'"
+      ></app-input-form>
+    }
+    @case ('analyzing') {
+      <app-loading-indicator [loadingText]="loadingText()"></app-loading-indicator>
+    }
+    @case ('confirmingSkills') {
+      <app-skill-confirmation
+        [suggestedSkills]="suggestedSkills()"
+        [highlightedSkills]="appState.highlightedSkills()"
+        (highlightedSkillsChange)="appState.highlightedSkills.set($event)"
+        
+        [jobSalaryInfo]="appState.jobSalaryInfo()"
+        (jobSalaryInfoChange)="handleJobSalaryChange($event)"
+        [jobSalarySource]="jobSalarySource()"
+        [estimatedJobSalary]="estimatedJobSalary()"
+        [jobSalaryJustification]="jobSalaryJustification()"
+        
+        [expectedSalary]="appState.expectedSalary()"
+        (expectedSalaryChange)="handleExpectedSalaryChange($event)"
+        [candidateSalarySource]="candidateSalarySource()"
+        [initialEstimatedCandidateSalary]="initialEstimatedCandidateSalary()"
+        [candidateSalaryJustification]="candidateSalaryJustification()"
+        
+        (runAnalysis)="runFinalAnalysis()"
+        (cancel)="cancelSkillConfirmation()"
+      ></app-skill-confirmation>
+    }
+    @case ('results') {
+      <app-analysis-results
+        [result]="analysisResult()"
+        [highlightedSkills]="appState.highlightedSkills()"
+        [expectedSalary]="appState.expectedSalary()"
+        [initialEstimatedCandidateSalary]="initialEstimatedCandidateSalary()"
+        [finalJobSalary]="appState.jobSalaryInfo()"
+        [initialEstimatedJobSalary]="estimatedJobSalary()"
+        [jobSalarySource]="jobSalarySource()"
+        [candidateSalarySource]="candidateSalarySource()"
+        (startOver)="startOver()"
+        (refine)="refineAnalysis()"
+      ></app-analysis-results>
+    }
+  }
+</main>

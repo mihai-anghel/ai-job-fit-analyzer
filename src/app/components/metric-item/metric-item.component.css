@@ -1,0 +1,63 @@
+/* --- ON-SCREEN STYLES (Semantic) --- */
+/* All styling is now driven by semantic classes, not dynamic utility classes */
+
+.print-dimension-score.score-high {
+    color: #4ade80; /* Tailwind green-400 */
+}
+.print-dimension-score.score-medium {
+    color: #facc15; /* Tailwind yellow-400 */
+}
+.print-dimension-score.score-low {
+    color: #f87171; /* Tailwind red-400 */
+}
+
+.progress-bar.score-high {
+    background-color: #22c55e; /* Tailwind green-500 */
+}
+.progress-bar.score-medium {
+    background-color: #eab308; /* Tailwind yellow-500 */
+}
+.progress-bar.score-low {
+    background-color: #ef4444; /* Tailwind red-500 */
+}
+
+
+/* --- PRINT STYLES --- */
+
+/* Generic styles for the progress bar container in print mode */
+:host-context(.print-mode) .bar-container {
+    background-color: #e5e7eb !important; /* gray-200 */
+}
+
+/* Set default text color for labels in print mode for better readability */
+:host-context(.print-mode) .print-item-label {
+    color: #1f2937 !important; /* gray-800 */
+}
+
+/* --- SELECTIVE COLOR RESTORATION for PRINT--- */
+/* These rules override the on-screen styles for print mode */
+
+:host-context(.print-mode) .print-dimension-score.score-high {
+    color: #166534 !important; /* green-800 */
+}
+:host-context(.print-mode) .print-dimension-score.score-medium {
+    color: #854d0e !important; /* yellow-800 */
+}
+:host-context(.print-mode) .print-dimension-score.score-low {
+    color: #991b1b !important; /* red-800 */
+}
+
+:host-context(.print-mode) .progress-bar.score-high {
+    background-color: #22c55e !important; /* green-500 */
+}
+:host-context(.print-mode) .progress-bar.score-medium {
+    background-color: #eab308 !important; /* yellow-500 */
+}
+:host-context(.print-mode) .progress-bar.score-low {
+    background-color: #ef4444 !important; /* red-500 */
+}
+
+/* Ensure feedback text has a readable dark color */
+:host-context(.print-mode) .print-item-feedback {
+    color: #374151 !important; /* gray-700 */
+}

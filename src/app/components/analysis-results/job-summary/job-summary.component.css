@@ -1,0 +1,14 @@
+:host-context(.print-mode) .print-info-text,
+:host-context(.print-mode) .print-summary-item,
+:host-context(.print-mode) .print-company-description {
+    color: #334155 !important; /* slate-700 */
+}
+
+:host-context(.print-mode) .print-info-icon {
+    color: #64748b !important; /* slate-500 */
+}
+
+/* Styles for integrated Document Quality Analysis */
+:host-context(.print-mode) .print-sub-header {
+    color: #1e293b !important; /* slate-800 */
+}

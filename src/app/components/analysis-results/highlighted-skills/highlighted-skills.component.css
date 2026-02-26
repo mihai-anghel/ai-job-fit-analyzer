@@ -1,0 +1,11 @@
+:host-context(.print-mode) .print-skill-tag {
+    background-color: #e0e7ff !important; /* indigo-100 */
+    color: #3730a3 !important; /* indigo-800 */
+    border: 1px solid #a5b4fc !important; /* indigo-300 */
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+}
+
+:host-context(.print-mode) .print-empty-text {
+    color: #6b7280 !important; /* gray-500 */
+}

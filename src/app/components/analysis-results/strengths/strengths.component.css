@@ -1,0 +1,4 @@
+:host-context(.print-mode) .print-list-item,
+:host-context(.print-mode) .print-bold-item {
+    color: #166534 !important; /* green-800 */
+}

@@ -1,0 +1,32 @@
+<!-- New Three-Column Layout -->
+<div class="grid grid-cols-1 md:grid-cols-3 items-center gap-6 print-atomic-item">
+  <!-- Left Column: Candidate Info -->
+  <div class="text-center md:text-left">
+    <p class="text-2xl font-semibold text-white print-header-main">{{ result().candidateInfo.name || 'The Candidate' }}</p>
+    <p class="text-lg text-slate-300 print-header-sub">{{ result().candidateInfo.currentRole || 'Current Role Unavailable' }}</p>
+  </div>
+
+  <!-- Center Column: Match Score -->
+  <div class="text-center order-first md:order-none">
+    <p class="text-6xl font-bold text-white print-score">{{ result().overallScore }}<span class="text-3xl text-slate-300 print-score-suffix">/100</span></p>
+    <p class="text-xl font-semibold text-purple-200 print-header-sub">{{ result().matchStrength }}</p>
+  </div>
+
+  <!-- Right Column: Job Info -->
+  <div class="text-center md:text-right">
+    <p class="text-2xl font-semibold text-white print-header-main">{{ companyDisplay() }}</p>
+    <p class="text-lg text-slate-300 print-header-sub">{{ result().jobInfo.title || 'The Role' }}</p>
+  </div>
+</div>
+
+
+<p class="mt-6 text-purple-200 leading-relaxed print-atomic-item print-summary-text">{{ result().evaluationSummary }}</p>
+
+<!-- Dimensional Analysis -->
+<div class="mt-6 pt-6 border-t border-purple-500/30 print-atomic-item">
+  <h3 class="text-lg font-semibold text-purple-300 mb-4 print-sub-header">Dimensional Analysis</h3>
+  <app-dimensional-analysis
+    [description]="'Each dimension is scored from 0 (poor fit) to 100 (excellent fit).'"
+    [items]="dimensionalAnalysisItems()">
+  </app-dimensional-analysis>
+</div>

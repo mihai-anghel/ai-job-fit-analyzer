@@ -1,0 +1,4 @@
+/* Specific color overrides for elements in this component for print mode */
+:host-context(.print-mode) .print-description {
+    color: #1d4ed8 !important; /* blue-700 */
+}

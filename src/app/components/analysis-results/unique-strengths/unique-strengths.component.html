@@ -1,0 +1,12 @@
+@if (result().unmentionedStrengths && result().unmentionedStrengths.length > 0) {
+  <div>
+    <p class="text-sm text-cyan-200/80 mb-4 print-atomic-item print-description">These are valuable skills and experiences found in the CV that were not mentioned in the job description.</p>
+    <ul class="space-y-3 list-disc list-inside text-cyan-200/90 print-list">
+      @for (strength of result().unmentionedStrengths; track strength.skill) {
+        <li class="print-list-item">
+            <strong class="font-semibold text-cyan-100 print-bold-item">{{ strength.skill }}:</strong> {{ strength.description }}
+        </li>
+      }
+    </ul>
+  </div>
+}

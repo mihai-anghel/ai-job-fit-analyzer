@@ -1,0 +1,4 @@
+:host-context(.print-mode) .print-description,
+:host-context(.print-mode) .print-question-item {
+    color: #9a3412 !important; /* orange-800 */
+}

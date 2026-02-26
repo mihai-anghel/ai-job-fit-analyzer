@@ -1,0 +1,17 @@
+<div class="print-atomic-item">
+  <app-info-list
+    [items]="candidateInfoItems()"
+    [theme]="'candidate'"
+    iconColorClass="text-purple-300">
+  </app-info-list>
+</div>
+
+<p class="mt-6 text-slate-300 leading-relaxed print-atomic-item print-summary-text">{{ result().candidateSummary }}</p>
+
+<!-- CV Quality Analysis -->
+@if (result().documentQualityAnalysis) {
+  <div class="mt-6 pt-6 border-t border-slate-700/50 print-atomic-item">
+    <h3 class="text-lg font-semibold text-slate-300 mb-4 print-sub-header">CV Quality</h3>
+    <app-dimensional-analysis [items]="cvAnalysisItems()"></app-dimensional-analysis>
+  </div>
+}

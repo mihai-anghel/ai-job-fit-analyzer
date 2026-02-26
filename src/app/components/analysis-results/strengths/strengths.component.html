@@ -1,0 +1,7 @@
+<ul class="space-y-3 list-disc list-inside text-green-200/90 print-list">
+  @for (strength of result().strengths; track strength.skill) {
+    <li class="print-list-item">
+      <strong class="font-semibold text-green-100 print-bold-item">{{ strength.skill }}:</strong> {{ strength.description }}
+    </li>
+  }
+</ul>

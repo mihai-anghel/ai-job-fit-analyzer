@@ -1,0 +1,25 @@
+:host-context(.print-mode) .collapsible-content {
+  display: block !important;
+  margin-top: 16px !important;
+  visibility: visible !important;
+  height: auto !important;
+}
+
+/* This ensures the content is not considered "hidden" by html2canvas */
+.collapsible-content.hidden {
+  /* No display: none here, we rely on print-mode to override */
+}
+
+/* In print mode, the panel has a white background and a thicker border. The color is set by panel-specific classes. */
+:host-context(.print-mode) .print-panel {
+  background-color: white !important;
+  background-image: none !important;
+  border-width: 2px !important;
+  border-style: solid !important;
+  border-color: #d1d5db !important; /* Default gray border */
+}
+
+/* In print mode, the title text is dark gray. */
+:host-context(.print-mode) .print-header-title {
+  color: #1f2937 !important; /* gray-800 */
+}

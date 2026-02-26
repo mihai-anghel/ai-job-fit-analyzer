@@ -1,0 +1,167 @@
+.print-area {
+  position: absolute;
+  left: -9999px;
+  top: auto;
+  width: 1024px; /* A reasonable width for rendering */
+  background-color: white;
+}
+
+/* 
+  Global Print Utility.
+  Hide any element with this class from the final PDF export.
+  This is used to remove interactive UI elements like tooltips.
+*/
+:host ::ng-deep .print-mode .hide-in-print {
+    display: none !important;
+}
+
+/* 
+  Print List Styles.
+  ::ng-deep is used to pierce style encapsulation and apply these styles to child components.
+  All selectors are now class-based to improve maintainability and avoid element tags.
+*/
+/* Base reset for lists in print mode - now class-based */
+:host ::ng-deep .print-mode .print-list {
+    list-style-type: none !important;
+    padding-left: 0 !important;
+}
+
+/* 
+  Dedicated layout class for metric items in print mode.
+  This is a semantic marker to prevent them from being styled like list items (e.g., getting a bullet point).
+*/
+:host ::ng-deep .print-mode .print-metric-feedback-layout {
+    /* Any necessary layout styling is handled within the metric-item component itself. */
+}
+
+/* Unordered list items */
+:host ::ng-deep .print-mode .print-list-item,
+:host ::ng-deep .print-mode .print-summary-item {
+    position: relative !important;
+    padding-left: 1.25rem !important;
+    line-height: 1.5 !important;
+}
+
+/* Marker for unordered list items - element tag removed */
+:host ::ng-deep .print-mode .print-list-item::before,
+:host ::ng-deep .print-mode .print-summary-item::before {
+    content: '•' !important;
+    position: absolute !important;
+    left: 0.25rem !important;
+    top: 0.15em !important; /* Adjusted for better vertical alignment */
+    color: currentColor !important;
+}
+
+/* Ordered list items (using .print-question-item class) */
+:host ::ng-deep .print-mode .print-list.list-decimal {
+    counter-reset: question-counter !important;
+}
+
+:host ::ng-deep .print-mode .print-question-item {
+    position: relative !important;
+    padding-left: 1.5rem !important; /* More space for numbers */
+    counter-increment: question-counter !important;
+    line-height: 1.5 !important;
+}
+
+/* Marker for ordered list items - element tag removed */
+:host ::ng-deep .print-mode .print-question-item::before {
+    content: counter(question-counter) '.' !important;
+    position: absolute !important;
+    left: 0.25rem !important;
+    top: 0.15em !important; /* Adjusted for better vertical alignment */
+    color: currentColor !important;
+    font-weight: bold;
+}
+
+
+/* 
+  Semantic Panel Styling
+  This approach uses semantic, component-specific classes to style the panels,
+  decoupling the template from presentational utility classes and improving maintainability.
+*/
+
+/* --- On-Screen Panel Styles --- */
+
+:host ::ng-deep .interpretation-guide-panel {
+  background-color: rgba(16, 185, 129, 0.1); /* Emerald-500 with opacity */
+  border-color: rgba(16, 185, 129, 0.3);
+  color: #34d399; /* Emerald-400 for the icon */
+}
+
+:host ::ng-deep .evaluation-summary-panel {
+  background-image: linear-gradient(to bottom right, #581c87, #3730a3);
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.25);
+}
+
+:host ::ng-deep .summary-icon {
+  color: #c084fc;
+}
+
+:host ::ng-deep .candidate-profile-panel {
+  background-color: rgba(76, 29, 149, 0.2);
+  border-color: rgba(139, 92, 246, 0.3);
+}
+
+:host ::ng-deep .candidate-profile-icon {
+  color: #a78bfa;
+}
+
+:host ::ng-deep .job-summary-panel {
+  background-color: rgba(15, 23, 42, 0.2);
+  border-color: rgba(100, 116, 139, 0.3);
+}
+
+:host ::ng-deep .job-summary-icon {
+  color: #94a3b8;
+}
+
+:host ::ng-deep .highlighted-skills-panel {
+  background-color: rgba(49, 46, 129, 0.2);
+  border-color: rgba(99, 102, 241, 0.3);
+}
+
+:host ::ng-deep .highlighted-skills-icon {
+  color: #818cf8;
+}
+
+:host ::ng-deep .unique-strengths-panel {
+  background-color: rgba(22, 78, 99, 0.2);
+  border-color: rgba(6, 182, 212, 0.3);
+}
+
+:host ::ng-deep .unique-strengths-icon {
+  color: #22d3ee;
+}
+
+:host ::ng-deep .questions-to-ask-panel {
+  background-color: rgba(124, 45, 18, 0.2);
+  border-color: rgba(249, 115, 22, 0.3);
+}
+
+:host ::ng-deep .questions-to-ask-icon {
+  color: #fb923c;
+}
+
+:host ::ng-deep .questions-for-candidate-panel {
+  background-color: rgba(19, 78, 74, 0.2);
+  border-color: rgba(20, 184, 166, 0.3);
+}
+
+:host ::ng-deep .questions-for-candidate-icon {
+  color: #2dd4bf;
+}
+
+
+/* 
+  Theme colors for print mode. The 'color' property is inherited by the icon.
+*/
+:host ::ng-deep .print-mode .interpretation-guide-panel { border-color: #059669 !important; color: #059669 !important; }
+:host ::ng-deep .print-mode .evaluation-summary-panel { border-color: #a855f7 !important; color: #a855f7 !important; }
+:host ::ng-deep .print-mode .candidate-profile-panel { border-color: #8b5cf6 !important; color: #8b5cf6 !important; }
+:host ::ng-deep .print-mode .job-summary-panel { border-color: #64748b !important; color: #64748b !important; }
+:host ::ng-deep .print-mode .highlighted-skills-panel { border-color: #6366f1 !important; color: #6366f1 !important; }
+:host ::ng-deep .print-mode .unique-strengths-panel { border-color: #06b6d4 !important; color: #06b6d4 !important; }
+:host ::ng-deep .print-mode .questions-to-ask-panel { border-color: #f97316 !important; color: #f97316 !important; }
+:host ::ng-deep .print-mode .questions-for-candidate-panel { border-color: #14b8a6 !important; color: #14b8a6 !important; }

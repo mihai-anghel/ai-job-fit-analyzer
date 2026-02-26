@@ -1,0 +1,96 @@
+<!-- Modal Backdrop -->
+<div class="fixed inset-0 bg-black/70 backdrop-blur-sm z-40"></div>
+<!-- Modal Panel -->
+<div class="fixed inset-0 z-50 flex items-center justify-center p-4">
+  <div class="bg-slate-800 border border-slate-700 rounded-2xl max-w-4xl w-full p-6 sm:p-8 flex flex-col max-h-[90vh]">
+    <!-- Header -->
+    <div class="flex-shrink-0">
+      <h2 class="text-2xl font-bold text-white">Confirm Details to Highlight</h2>
+      <p class="text-slate-400 mt-2">The AI has suggested these skills and salary details. Review and adjust them before the final analysis.</p>
+    </div>
+    
+    <!-- Scrollable Content -->
+    <div class="flex-grow overflow-y-auto my-6 pr-4 space-y-6 -mr-4">
+      <!-- Salary Information -->
+      <div>
+        <h3 class="text-lg font-semibold text-purple-300 mb-3">Salary Details</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <app-job-salary-info
+            [jobSalaryInfo]="jobSalaryInfo()"
+            [source]="jobSalarySource()"
+            [estimatedJobSalary]="estimatedJobSalary()"
+            [jobSalaryJustification]="jobSalaryJustification()"
+            (jobSalaryInfoChange)="jobSalaryInfoChange.emit($event)">
+          </app-job-salary-info>
+          
+          <app-candidate-salary-info
+            [expectedSalary]="expectedSalary()"
+            [source]="candidateSalarySource()"
+            [initialEstimatedCandidateSalary]="initialEstimatedCandidateSalary()"
+            [candidateSalaryJustification]="candidateSalaryJustification()"
+            (expectedSalaryChange)="expectedSalaryChange.emit($event)">
+          </app-candidate-salary-info>
+        </div>
+      </div>
+      
+      <!-- Suggested Skills -->
+      <div>
+          <h3 class="text-lg font-semibold text-purple-300 mb-3">Suggested Skills</h3>
+          <p class="text-sm text-slate-400 mb-3">Click on a skill to add or remove it from the final list to be highlighted in the analysis.</p>
+          <div class="flex flex-wrap gap-2">
+              @for (skill of suggestedSkills(); track skill) {
+                  <button 
+                      (click)="toggleSkill(skill)"
+                      [class.bg-purple-600]="highlightedSkills().includes(skill)"
+                      [class.bg-slate-700]="!highlightedSkills().includes(skill)"
+                      [class.text-white]="highlightedSkills().includes(skill)"
+                      class="px-3 py-1 rounded-full text-sm font-medium hover:bg-purple-500 transition">
+                      {{ skill }}
+                  </button>
+              }
+          </div>
+      </div>
+
+      <!-- Add Custom Skill -->
+      <div>
+        <h3 class="text-lg font-semibold text-purple-300 mb-3">Add Custom Skills</h3>
+        <div class="flex flex-col sm:flex-row gap-2">
+          <input 
+            type="text" 
+            class="flex-grow p-2 bg-slate-700 border border-slate-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition" 
+            placeholder="e.g., 'Led a team of 5 engineers'"
+            [value]="newSkill()"
+            (input)="newSkill.set($any($event.target).value)"
+            (keyup.enter)="addSkill()">
+          <button (click)="addSkill()" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-lg transition">Add</button>
+        </div>
+      </div>
+
+      <!-- Final List -->
+      <div>
+        <h3 class="text-lg font-semibold text-purple-300 mb-3">Final List to Highlight</h3>
+        <div class="flex flex-wrap gap-2 min-h-[40px] bg-slate-900/50 p-3 rounded-lg">
+          @for(skill of highlightedSkills(); track skill; let i = $index) {
+            <span class="bg-purple-900/80 text-purple-200 text-sm font-medium px-3 py-1 rounded-full flex items-center gap-2">
+              {{skill}}
+              <button (click)="removeSkill(i)" class="text-purple-300 hover:text-white">
+                <i class="fa-solid fa-xmark"></i>
+              </button>
+            </span>
+          }
+          @if (highlightedSkills().length === 0) {
+            <p class="text-slate-500 italic text-sm">No skills selected to highlight.</p>
+          }
+        </div>
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="flex-shrink-0 pt-4 border-t border-slate-700">
+      <div class="flex justify-end gap-4">
+          <button (click)="cancel.emit()" class="bg-transparent hover:bg-slate-700 text-slate-300 font-medium hover:text-white py-2 px-6 border border-slate-600 rounded-lg transition">Cancel</button>
+          <button (click)="runAnalysis.emit()" class="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-bold py-2 px-6 rounded-lg transition">Run Full Analysis</button>
+      </div>
+    </div>
+  </div>
+</div>

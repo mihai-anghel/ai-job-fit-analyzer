@@ -1,0 +1,26 @@
+:host-context(.print-mode) .print-summary-text {
+    color: #374151 !important; /* gray-700 */
+}
+
+:host-context(.print-mode) .print-score,
+:host-context(.print-mode) .print-header-main {
+    color: #1e293b !important; /* slate-800 */
+}
+
+:host-context(.print-mode) .print-score-suffix {
+    color: #64748b !important; /* slate-500 */
+}
+
+:host-context(.print-mode) .print-header-sub {
+    color: #374151 !important; /* gray-700 */
+}
+
+/* Styles for integrated Document Quality Analysis */
+:host-context(.print-mode) .print-sub-header {
+    color: #1e293b !important; /* slate-800 */
+}
+
+/* Specific color overrides for elements in this component for print mode */
+:host-context(.print-mode) .print-description {
+    color: #1d4ed8 !important; /* blue-700 */
+}

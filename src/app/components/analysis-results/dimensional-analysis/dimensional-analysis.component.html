@@ -1,0 +1,13 @@
+@if (description()) {
+  <p class="text-slate-400 text-sm mb-6 print-description">{{ description() }}</p>
+}
+<div class="space-y-5">
+  @for (item of items(); track item.label) {
+    <app-metric-item
+      [label]="item.label"
+      [score]="item.score"
+      [feedback]="item.feedback"
+      [explanation]="item.explanation">
+    </app-metric-item>
+  }
+</div>
