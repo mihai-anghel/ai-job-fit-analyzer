@@ -51,17 +51,38 @@ export class CacheableAnalysisService extends AnalysisService {
   override initialize(_apiKey: string): void { }
   override configure(_model: string): void { }
 
+  private canonicalizeDocumentText(text: string): string {
+    const normalized = (text ?? '').replace(/\r\n/g, '\n');
+    const lines = normalized.split('\n');
+    const dedupedConsecutive: string[] = [];
+
+    for (const rawLine of lines) {
+      const line = rawLine.trimEnd();
+      const previous = dedupedConsecutive[dedupedConsecutive.length - 1];
+      if (previous && previous.trim().toLowerCase() === line.trim().toLowerCase()) {
+        continue;
+      }
+      dedupedConsecutive.push(line);
+    }
+
+    return dedupedConsecutive
+      .join('\n')
+      .replace(/\n{3,}/g, '\n\n')
+      .trim();
+  }
 
 
 
   // --- Granular Caching Implementation (Now state-aware) ---
   
   override async analyzeCv(input: CvAnalysisInput): Promise<CvAnalysisData | null> {
-    const cacheKey = `cv-analysis-${this.provider}-${this.model}-${input.cvText}`;
+    const normalizedCvText = this.canonicalizeDocumentText(input.cvText);
+    const normalizedInput: CvAnalysisInput = { ...input, cvText: normalizedCvText };
+    const cacheKey = `cv-analysis-${this.provider}-${this.model}-${normalizedCvText}`;
     const cached = this.cache.load<CachedCvAnalysisData>(cacheKey);
     if (cached) return cached;
 
-    const result = await this.activeWorker().analyzeCv(input);
+    const result = await this.activeWorker().analyzeCv(normalizedInput);
     if (result) {
       this.cache.save(cacheKey, result);
     }
@@ -69,11 +90,13 @@ export class CacheableAnalysisService extends AnalysisService {
   }
   
   override async analyzeJd(input: JdAnalysisInput): Promise<JdAnalysisData | null> {
-    const cacheKey = `jd-analysis-${this.provider}-${this.model}-${input.jdText}`;
+    const normalizedJdText = this.canonicalizeDocumentText(input.jdText);
+    const normalizedInput: JdAnalysisInput = { ...input, jdText: normalizedJdText };
+    const cacheKey = `jd-analysis-${this.provider}-${this.model}-${normalizedJdText}`;
     const cached = this.cache.load<CachedJdAnalysisData>(cacheKey);
     if (cached) return cached;
 
-    const result = await this.activeWorker().analyzeJd(input);
+    const result = await this.activeWorker().analyzeJd(normalizedInput);
     if (result) {
       this.cache.save(cacheKey, result);
     }
@@ -81,12 +104,17 @@ export class CacheableAnalysisService extends AnalysisService {
   }
 
   override async analyzeFit(input: FitAnalysisInput): Promise<FitAnalysisData | null> {
+    const normalizedInput: FitAnalysisInput = {
+      ...input,
+      jdText: this.canonicalizeDocumentText(input.jdText),
+      cvText: this.canonicalizeDocumentText(input.cvText),
+    };
     const skillsKey = input.highlightedSkills?.join(',');
-    const cacheKey = `fit-analysis-${this.provider}-${this.model}-${input.jdText}-${input.cvText}-${skillsKey}`;
+    const cacheKey = `fit-analysis-${this.provider}-${this.model}-${normalizedInput.jdText}-${normalizedInput.cvText}-${skillsKey}`;
     const cached = this.cache.load<CachedFitAnalysisData>(cacheKey);
     if (cached) return cached;
 
-    const result = await this.activeWorker().analyzeFit(input);
+    const result = await this.activeWorker().analyzeFit(normalizedInput);
     if (result) {
       this.cache.save(cacheKey, result);
     }
@@ -102,9 +130,12 @@ export class CacheableAnalysisService extends AnalysisService {
     this.activeWorker().initialize(this.appState.currentApiKey());
     this.activeWorker().configure(this.appState.currentModel());
 
-    const cvAnalysis = await this.analyzeCv(input);
-    const jdAnalysis = await this.analyzeJd(input);
-    const fitAnalysis = await this.analyzeFit(input);
+    // Parallelize the three analyses to reduce total runtime
+    const [cvAnalysis, jdAnalysis, fitAnalysis] = await Promise.all([
+      this.analyzeCv(input),
+      this.analyzeJd(input),
+      this.analyzeFit(input),
+    ]);
 
     if (!cvAnalysis || !jdAnalysis || !fitAnalysis) return null;
 

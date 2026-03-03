@@ -62,7 +62,8 @@ export class GeminiAnalyzerService extends AnalysisService {
 
     let response: GenerateContentResponse;
     try {
-        response = await this.ai.models.generateContent({
+        // wrap request in a 30‑second timeout to avoid indefinite hangs
+        const callPromise = this.ai.models.generateContent({
             model: this.model,
             contents: [{ parts: [{ text: prompt }] }],
             config: {
@@ -73,7 +74,18 @@ export class GeminiAnalyzerService extends AnalysisService {
                 topK: 1,
             }
         });
+        response = await Promise.race([
+            callPromise,
+            new Promise<never>((_, rej) =>
+              setTimeout(() => rej(new Error('AI request timed out (30s)')), 30000)
+            )
+        ]);
     } catch (e: any) {
+        // handle timeout separately for user clarity
+        if (e.message && e.message.includes('timed out')) {
+            this._error.set('The AI service did not respond within 30 seconds. Please check your network or API key.');
+            return null;
+        }
         console.error("Error during AI content generation API call:", e);
         
         let userFriendlyMessage = "An unexpected API error occurred during analysis. Please check the console for details.";

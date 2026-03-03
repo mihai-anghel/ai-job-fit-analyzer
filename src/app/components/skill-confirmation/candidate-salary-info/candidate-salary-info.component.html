@@ -15,7 +15,7 @@
           type="text" 
           id="candidate-salary"
           class="w-full p-2 bg-slate-700 border border-slate-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition" 
-          placeholder="e.g., 95,000 EUR"
+          [placeholder]="(source() === 'estimated' && initialEstimatedCandidateSalary()) ? initialEstimatedCandidateSalary() : 'e.g., 95,000 EUR'"
           [value]="expectedSalary()"
           (input)="expectedSalaryChange.emit($any($event.target).value)"
           (focus)="showSuggestions()">

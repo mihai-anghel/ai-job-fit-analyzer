@@ -165,3 +165,13 @@
 :host ::ng-deep .print-mode .unique-strengths-panel { border-color: #06b6d4 !important; color: #06b6d4 !important; }
 :host ::ng-deep .print-mode .questions-to-ask-panel { border-color: #f97316 !important; color: #f97316 !important; }
 :host ::ng-deep .print-mode .questions-for-candidate-panel { border-color: #14b8a6 !important; color: #14b8a6 !important; }
+
+/* Keep header icon footprint stable in PDF regardless of font metrics/loading timing. */
+:host ::ng-deep .print-mode .print-header-icon {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 1.25rem !important;
+  min-width: 1.25rem !important;
+  line-height: 1 !important;
+}

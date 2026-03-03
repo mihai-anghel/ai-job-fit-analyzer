@@ -52,6 +52,11 @@ export class AnalysisResultsComponent {
   @ViewChild('printArea') printArea!: ElementRef<HTMLDivElement>;
   isExporting = signal(false);
 
+  private normalizeMaybeText(value: string | null | undefined): string {
+    const normalized = (value ?? '').trim();
+    return normalized && normalized.toLowerCase() !== 'null' ? normalized : '';
+  }
+
   private sanitizeFilename(name: string): string {
     // Replace spaces and invalid characters with underscores to create a valid filename.
     return name.replace(/[^a-z0-9._-]/gi, '_').replace(/_+/g, '_');
@@ -64,13 +69,13 @@ export class AnalysisResultsComponent {
     this.isExporting.set(true);
 
     const jobInfo = resultData.jobInfo;
-    const candidateName = resultData.candidateInfo?.name || 'Candidate';
-    const jobTitle = jobInfo?.title || 'Job';
+    const candidateName = this.normalizeMaybeText(resultData.candidateInfo?.name) || 'Candidate';
+    const jobTitle = this.normalizeMaybeText(jobInfo?.title) || 'Job';
     const score = resultData.overallScore;
     
     // Sanitize and determine company name with fallback logic
-    const sanitizedCompanyName = jobInfo?.companyName && jobInfo.companyName.trim().toLowerCase() !== 'null' ? jobInfo.companyName.trim() : null;
-    const sanitizedRecruiterName = jobInfo?.recruitingAgency && jobInfo.recruitingAgency.trim().toLowerCase() !== 'null' ? jobInfo.recruitingAgency.trim() : null;
+    const sanitizedCompanyName = this.normalizeMaybeText(jobInfo?.companyName);
+    const sanitizedRecruiterName = this.normalizeMaybeText(jobInfo?.recruitingAgency);
     const companyName = sanitizedCompanyName || sanitizedRecruiterName || 'Company';
 
     let candidatePart = candidateName;
@@ -83,6 +88,13 @@ export class AnalysisResultsComponent {
     const filename = `${this.sanitizeFilename(baseFilename)}.pdf`;
 
     try {
+      // Ensure web fonts (including Font Awesome) are fully loaded before rasterizing.
+      const fonts = (document as Document & { fonts?: { ready?: Promise<unknown> } }).fonts;
+      if (fonts?.ready) {
+        await fonts.ready;
+      }
+      await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
+
       const { jsPDF } = jspdf;
       const pdf = new jsPDF({ orientation: 'p', unit: 'pt', format: 'a4' });
       const pdfWidth = pdf.internal.pageSize.getWidth();

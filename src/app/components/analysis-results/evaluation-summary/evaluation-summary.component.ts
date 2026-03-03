@@ -15,6 +15,15 @@ import { DimensionalAnalysisComponent, DisplayableMetric } from '../dimensional-
 export class EvaluationSummaryComponent {
   result = input.required<AnalysisResult>();
 
+  private normalizeMaybeText(value: string | null | undefined): string {
+    const normalized = (value ?? '').trim();
+    return normalized && normalized.toLowerCase() !== 'null' ? normalized : '';
+  }
+
+  candidateDisplayName = computed(() => this.normalizeMaybeText(this.result()?.candidateInfo?.name) || 'The Candidate');
+  candidateDisplayRole = computed(() => this.normalizeMaybeText(this.result()?.candidateInfo?.currentRole) || 'Current Role Unavailable');
+  jobDisplayTitle = computed(() => this.normalizeMaybeText(this.result()?.jobInfo?.title) || 'The Role');
+
   dimensionalAnalysisItems = computed((): DisplayableMetric[] => {
       const data = this.result()?.dimensionalAnalysis;
       if (!data) return [];
@@ -43,11 +52,8 @@ export class EvaluationSummaryComponent {
     const jobInfo = this.result()?.jobInfo;
     if (!jobInfo) return 'the Company';
 
-    const employerName = jobInfo.companyName;
-    const recruiterName = jobInfo.recruitingAgency;
-
-    const sanitizedEmployer = (employerName && employerName.trim().toLowerCase() !== 'null') ? employerName.trim() : null;
-    const sanitizedRecruiter = (recruiterName && recruiterName.trim().toLowerCase() !== 'null') ? recruiterName.trim() : null;
+    const sanitizedEmployer = this.normalizeMaybeText(jobInfo.companyName);
+    const sanitizedRecruiter = this.normalizeMaybeText(jobInfo.recruitingAgency);
 
     return sanitizedEmployer || sanitizedRecruiter || 'the Company';
   });

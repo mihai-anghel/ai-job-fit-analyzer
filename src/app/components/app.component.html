@@ -48,7 +48,7 @@
       <app-skill-confirmation
         [suggestedSkills]="suggestedSkills()"
         [highlightedSkills]="appState.highlightedSkills()"
-        (highlightedSkillsChange)="appState.highlightedSkills.set($event)"
+        (highlightedSkillsChange)="handleHighlightedSkillsChange($event)"
         
         [jobSalaryInfo]="appState.jobSalaryInfo()"
         (jobSalaryInfoChange)="handleJobSalaryChange($event)"

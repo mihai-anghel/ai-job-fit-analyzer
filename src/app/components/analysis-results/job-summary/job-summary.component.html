@@ -6,7 +6,7 @@
   </app-info-list>
 </div>
 
-@if (result().jobInfo.companyDescription; as description) {
+@if (companyDescription(); as description) {
   <p class="text-slate-300 leading-relaxed mb-6 print-atomic-item print-company-description">{{ description }}</p>
 }
 

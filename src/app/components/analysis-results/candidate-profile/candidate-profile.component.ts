@@ -20,18 +20,26 @@ export class CandidateProfileComponent {
   initialEstimatedCandidateSalary = input.required<string>();
   source = input.required<SalarySource>();
 
+  private normalizeMaybeText(value: string | null | undefined): string {
+    const normalized = (value ?? '').trim();
+    return normalized && normalized.toLowerCase() !== 'null' ? normalized : '';
+  }
+
   candidateInfoItems = computed((): InfoItem[] => {
     const info: InfoItem[] = [];
     const candidate = this.result()?.candidateInfo;
 
-    if (candidate?.currentRole) {
-      info.push({ iconClass: 'fa-solid fa-briefcase', primaryText: candidate.currentRole });
+    const currentRole = this.normalizeMaybeText(candidate?.currentRole);
+    if (currentRole) {
+      info.push({ iconClass: 'fa-solid fa-briefcase', primaryText: currentRole });
     }
-    if (candidate?.currentCompany) {
-      info.push({ iconClass: 'fa-solid fa-building', primaryText: candidate.currentCompany });
+    const currentCompany = this.normalizeMaybeText(candidate?.currentCompany);
+    if (currentCompany) {
+      info.push({ iconClass: 'fa-solid fa-building', primaryText: currentCompany });
     }
-    if (candidate?.currentCompanyLocation) {
-      info.push({ iconClass: 'fa-solid fa-map-marker-alt', primaryText: candidate.currentCompanyLocation });
+    const currentCompanyLocation = this.normalizeMaybeText(candidate?.currentCompanyLocation);
+    if (currentCompanyLocation) {
+      info.push({ iconClass: 'fa-solid fa-map-marker-alt', primaryText: currentCompanyLocation });
     }
     
     const finalSalary = this.expectedSalary();
@@ -69,8 +77,9 @@ export class CandidateProfileComponent {
       info.push({ iconClass: 'fa-solid fa-calendar-alt', primaryText: `${duration} in role` });
     }
 
-    if (candidate?.homeLocation) {
-      info.push({ iconClass: 'fa-solid fa-house-user', primaryText: candidate.homeLocation });
+    const homeLocation = this.normalizeMaybeText(candidate?.homeLocation);
+    if (homeLocation) {
+      info.push({ iconClass: 'fa-solid fa-house-user', primaryText: homeLocation });
     }
     
     return info;
@@ -104,8 +113,8 @@ export class CandidateProfileComponent {
   });
 
   currentRoleDuration = computed(() => {
-    const startDateStr = this.result()?.candidateInfo?.currentRoleStartDate;
-    const endDateStr = this.result()?.candidateInfo?.currentRoleEndDate;
+    const startDateStr = this.normalizeMaybeText(this.result()?.candidateInfo?.currentRoleStartDate);
+    const endDateStr = this.normalizeMaybeText(this.result()?.candidateInfo?.currentRoleEndDate);
 
     if (!startDateStr) {
       return '';

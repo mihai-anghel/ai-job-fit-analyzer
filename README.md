@@ -18,3 +18,19 @@ View your app in AI Studio: https://ai.studio/apps/fd9c44bf-1250-4d45-84cd-d0217
 2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
 3. Run the app:
    `npm run dev`
+
+---
+
+## Running Unit Tests
+
+The workspace uses Angular's testing harness (Karma + Jasmine). A sample test is provided for PDF parsing in `src/app/services/parsers/pdf-parser.service.spec.ts`.
+
+```bash
+# install deps if not done
+npm install
+# run the tests once
+ng test --watch=false --browsers=ChromeHeadless
+```
+
+Add more `*.spec.ts` files to expand coverage.
+

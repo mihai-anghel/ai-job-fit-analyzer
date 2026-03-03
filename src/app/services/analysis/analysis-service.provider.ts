@@ -1,4 +1,6 @@
-import { computed, effect, inject, Injectable, Signal } from '@angular/core';
+import { computed, inject, Injectable, Signal } from '@angular/core';
+import { toObservable } from '@angular/core/rxjs-interop';
+import { combineLatest } from 'rxjs';
 import { AnalysisService } from './analysis.service';
 import { GeminiAnalyzerService } from './ai/gemini-analyzer.service';
 import { OpenAiAnalyzerService } from './ai/openai-analyzer.service';
@@ -32,18 +34,18 @@ export class AnalysisServiceProvider {
         }
     });
 
-    // Effect to INITIALIZE the client when the provider or API key changes.
-    // This effect is more expensive as it creates a new AI client instance.
-    effect(() => {
-      const service = this.activeService();
-      const apiKey = this.appState.currentApiKey();
+    // Keep worker lifecycle synced with app state without writing signals inside effects.
+    combineLatest([
+      toObservable(this.activeService),
+      toObservable(this.appState.currentApiKey),
+    ]).subscribe(([service, apiKey]) => {
       service.initialize(apiKey);
     });
-    
-    // A separate, more lightweight effect to CONFIGURE the model when it changes.
-    effect(() => {
-      const service = this.activeService();
-      const model = this.appState.currentModel();
+
+    combineLatest([
+      toObservable(this.activeService),
+      toObservable(this.appState.currentModel),
+    ]).subscribe(([service, model]) => {
       service.configure(model);
     });
   }

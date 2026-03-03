@@ -12,12 +12,18 @@ import { AppStateService } from './app/services/state/app-state.service';
 import { AnalysisServiceProvider } from './app/services/analysis/analysis-service.provider';
 import { OpenAiAnalyzerService } from './app/services/analysis/ai/openai-analyzer.service';
 import { AnthropicAnalyzerService } from './app/services/analysis/ai/anthropic-analyzer.service';
+import { PdfParserService } from './app/services/parsers/pdf-parser.service';
+import { DocxParserService } from './app/services/parsers/docx-parser.service';
+import { TxtParserService } from './app/services/parsers/txt-parser.service';
 
 console.log('Bootstrapping AI Job Fit Analyzer...');
 bootstrapApplication(AppComponent, {
   providers: [
     provideExperimentalZonelessChangeDetection(),
     { provide: DefaultFileParserService, useClass: DefaultFileParserService },
+      { provide: PdfParserService, useClass: PdfParserService },
+      { provide: DocxParserService, useClass: DocxParserService },
+      { provide: TxtParserService, useClass: TxtParserService },
     { provide: GeminiAnalyzerService, useClass: GeminiAnalyzerService },
     { provide: OpenAiAnalyzerService, useClass: OpenAiAnalyzerService },
     { provide: AnthropicAnalyzerService, useClass: AnthropicAnalyzerService },

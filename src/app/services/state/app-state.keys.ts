@@ -9,4 +9,5 @@ export const APP_STATE_KEYS = {
   API_KEYS: 'app_apiKeys',
   MODELS: 'app_models',
   PROVIDER: 'app_provider',
+  CV_SKILL_SELECTIONS: 'app_cvSkillSelections',
 };

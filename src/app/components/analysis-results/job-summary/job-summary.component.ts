@@ -20,28 +20,28 @@ export class JobSummaryComponent {
   initialEstimatedJobSalary = input.required<string>();
   source = input.required<SalarySource>();
 
+  private normalizeMaybeText(value: string | null | undefined): string {
+    const normalized = (value ?? '').trim();
+    return normalized && normalized.toLowerCase() !== 'null' ? normalized : '';
+  }
+
   companyName = computed(() => {
-    const name = this.result()?.jobInfo?.companyName;
-    if (!name || !name.trim() || name.trim().toLowerCase() === 'null') {
-      return null;
-    }
-    return name;
+    return this.normalizeMaybeText(this.result()?.jobInfo?.companyName) || null;
   });
 
   recruiterInfo = computed(() => {
-    const recruiter = this.result()?.jobInfo?.recruitingAgency;
-    if (!recruiter || !recruiter.trim() || recruiter.trim().toLowerCase() === 'null') {
-      return null;
-    }
-    return recruiter;
+    return this.normalizeMaybeText(this.result()?.jobInfo?.recruitingAgency) || null;
   });
+
+  companyDescription = computed(() => this.normalizeMaybeText(this.result()?.jobInfo?.companyDescription));
 
   jobInfoItems = computed((): InfoItem[] => {
     const info: InfoItem[] = [];
     const job = this.result()?.jobInfo;
 
-    if (job?.title) {
-      info.push({ iconClass: 'fa-solid fa-briefcase', primaryText: job.title });
+    const title = this.normalizeMaybeText(job?.title);
+    if (title) {
+      info.push({ iconClass: 'fa-solid fa-briefcase', primaryText: title });
     }
 
     const company = this.companyName();
@@ -58,8 +58,9 @@ export class JobSummaryComponent {
       });
     }
 
-    if (job?.location) {
-      info.push({ iconClass: 'fa-solid fa-location-dot', primaryText: job.location });
+    const location = this.normalizeMaybeText(job?.location);
+    if (location) {
+      info.push({ iconClass: 'fa-solid fa-location-dot', primaryText: location });
     }
 
     const finalSalary = this.finalJobSalary();
@@ -92,12 +93,14 @@ export class JobSummaryComponent {
       });
     }
 
-    if (job?.employmentType) {
-      info.push({ iconClass: 'fa-solid fa-clock', primaryText: job.employmentType });
+    const employmentType = this.normalizeMaybeText(job?.employmentType);
+    if (employmentType) {
+      info.push({ iconClass: 'fa-solid fa-clock', primaryText: employmentType });
     }
 
-    if (job?.workModel) {
-      info.push({ iconClass: 'fa-solid fa-house', primaryText: job.workModel });
+    const workModel = this.normalizeMaybeText(job?.workModel);
+    if (workModel) {
+      info.push({ iconClass: 'fa-solid fa-house', primaryText: workModel });
     }
 
     return info;

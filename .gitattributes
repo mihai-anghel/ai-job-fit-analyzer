@@ -1,0 +1,35 @@
+# Set default behavior, in case users don't have core.autocrlf set.
+*          text=auto
+
+# Explicitly declare text files we want to always be normalized and converted 
+# to native line endings on checkout.
+*.gradle   text eol=lf diff=groovy
+*.groovy   text eol=lf diff=groovy
+*.dsl      text eol=lf diff=groovy
+*.html     text eol=lf diff=html
+*.htm      text eol=lf diff=html
+*.java     text eol=lf diff=java
+*.js       text eol=lf
+*.ts       text eol=lf
+*.py       text eol=lf
+*.xml      text
+*.yml      text
+*.md       text
+*.sh       text
+*.css      text eol=lf
+*.scss     text eol=lf
+*.txt      text
+*.json     text
+modules.json     -text
+*.log      text
+
+# Denote all files that are truly binary and should not be modified.
+*.png      binary
+*.gif      binary
+*.jpg      binary
+*.jpeg     binary
+*.jar      binary
+*.war      binary
+*.zip      binary
+*.exe      binary
+*.dll      binary

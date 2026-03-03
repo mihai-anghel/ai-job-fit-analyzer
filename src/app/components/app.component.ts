@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, effect, inject, signal, WritableSignal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal, WritableSignal } from '@angular/core';
 import { AppStateService } from '../services/state/app-state.service';
 import { AnalysisService } from '../services/analysis/analysis.service';
 import { FILE_PARSER_SERVICE } from '../services/parsers/file-parser.service';
@@ -54,27 +54,68 @@ export class AppComponent {
     return !jd || !cv;
   });
 
-  constructor() {
-    effect(() => {
-      // Clear analysis results if JD or CV changes
-      const jd = this.appState.jdText();
-      const cv = this.appState.cvText();
-      if (jd || cv) {
-        this.analysisResult.set(null);
-        this.suggestedSkills.set([]);
-        this.estimatedJobSalary.set('');
-        this.jobSalarySource.set('estimated');
-        this.jobSalaryJustification.set('');
-        this.initialEstimatedCandidateSalary.set('');
-        this.candidateSalarySource.set('estimated');
-        this.candidateSalaryJustification.set('');
-      }
+  constructor() {}
 
-      // If view is results and JD/CV is cleared, go to input view
-      if (this.view() === 'results' && !jd && !cv) {
-        this.view.set('input');
-      }
-    });
+  private normalizeMaybeText(value: string | null | undefined): string {
+    const normalized = (value ?? '').trim();
+    if (!normalized) return '';
+
+    const lowered = normalized.toLowerCase();
+    if (
+      lowered === 'null' ||
+      lowered === 'undefined' ||
+      lowered === 'n/a' ||
+      lowered === 'na' ||
+      lowered === 'none' ||
+      lowered === 'unknown' ||
+      lowered === '-'
+    ) {
+      return '';
+    }
+
+    return normalized;
+  }
+
+  private normalizeSalaryText(value: string | null | undefined): string {
+    const normalized = this.normalizeMaybeText(value);
+    if (!normalized) return '';
+
+    const lowered = normalized.toLowerCase();
+    if (
+      lowered === 'not specified' ||
+      lowered === 'not provided' ||
+      lowered === 'not available' ||
+      lowered === 'not mentioned' ||
+      lowered === 'salary not specified'
+    ) {
+      return '';
+    }
+
+    // Market/extracted salary values should contain at least one digit.
+    if (!/\d/.test(normalized)) {
+      return '';
+    }
+
+    return normalized;
+  }
+
+  private isSkillMentionedInCv(skill: string, cvText: string): boolean {
+    const normalizedSkill = skill.trim().toLowerCase();
+    if (!normalizedSkill) return false;
+
+    const normalizedCv = cvText.toLowerCase();
+    return normalizedCv.includes(normalizedSkill);
+  }
+
+  private resetAnalysisStateAfterInputChange() {
+    this.analysisResult.set(null);
+    this.suggestedSkills.set([]);
+    this.estimatedJobSalary.set('');
+    this.jobSalarySource.set('estimated');
+    this.jobSalaryJustification.set('');
+    this.initialEstimatedCandidateSalary.set('');
+    this.candidateSalarySource.set('estimated');
+    this.candidateSalaryJustification.set('');
   }
 
   // Event Handlers
@@ -84,10 +125,11 @@ export class AppComponent {
     } else {
       this.appState.setCv(text);
     }
+    this.resetAnalysisStateAfterInputChange();
   }
 
   handleProviderChange(provider: AiProvider) {
-    this.appState.provider.set(provider);
+    this.appState.setProvider(provider);
   }
 
   handleModelChange(model: string) {
@@ -107,6 +149,7 @@ export class AppComponent {
       } else {
         this.appState.setCv(text, event.file.name);
       }
+      this.resetAnalysisStateAfterInputChange();
     } catch (error: any) {
       this.userError.set(`Error parsing file: ${error.message}`);
     }
@@ -117,6 +160,11 @@ export class AppComponent {
       this.appState.clearJd();
     } else {
       this.appState.clearCv();
+    }
+    this.resetAnalysisStateAfterInputChange();
+
+    if (this.view() === 'results' && !this.appState.jdText() && !this.appState.cvText()) {
+      this.view.set('input');
     }
   }
 
@@ -133,15 +181,62 @@ export class AppComponent {
     this.analysisResult.set(null);
 
     try {
-      const result = await this.analysisService.analyze({
-        jdText: this.appState.jdText(),
-        cvText: this.appState.cvText(),
-        highlightedSkills: [],
-      });
-      if (result) {
-        this.analysisResult.set(result);
-        this.view.set('results');
+      const [cvAnalysis, jdAnalysis] = await Promise.all([
+        this.analysisService.analyzeCv({ cvText: this.appState.cvText() }),
+        this.analysisService.analyzeJd({ jdText: this.appState.jdText() }),
+      ]);
+
+      if (!cvAnalysis || !jdAnalysis) {
+        throw new Error(this.analysisService.error() ?? 'Initial analysis failed.');
       }
+
+      const suggestedSkills = [...new Set(
+        (jdAnalysis.requirements ?? [])
+          .map(skill => this.normalizeMaybeText(skill))
+          .filter(Boolean)
+      )];
+      this.suggestedSkills.set(suggestedSkills);
+      const cvText = this.appState.cvText();
+      const cachedSkillsForCv = this.appState.getSkillsForCv(cvText);
+      const preselectedSkills = cachedSkillsForCv.length > 0
+        ? [...new Set(cachedSkillsForCv)]
+        : suggestedSkills.filter(skill => this.isSkillMentionedInCv(skill, cvText));
+      this.appState.highlightedSkills.set(preselectedSkills);
+      this.appState.setSkillsForCv(cvText, preselectedSkills);
+
+      const estimatedJobSalary = this.normalizeSalaryText(jdAnalysis.estimatedJobSalary);
+      this.estimatedJobSalary.set(estimatedJobSalary);
+      this.jobSalaryJustification.set(this.normalizeMaybeText(jdAnalysis.jobSalaryJustification));
+      const extractedJobSalary = this.normalizeSalaryText(jdAnalysis.jobInfo?.salaryRange);
+      const cachedJobSalary = this.normalizeSalaryText(this.appState.jobSalaryInfo());
+      if (extractedJobSalary) {
+        this.jobSalarySource.set('extracted');
+        this.appState.jobSalaryInfo.set(extractedJobSalary);
+      } else if (cachedJobSalary) {
+        this.jobSalarySource.set('cached-manual');
+        this.appState.jobSalaryInfo.set(cachedJobSalary);
+      } else {
+        this.jobSalarySource.set('estimated');
+        this.appState.jobSalaryInfo.set('');
+      }
+
+      const estimatedCandidateSalary = this.normalizeSalaryText(cvAnalysis.estimatedCandidateSalary);
+      this.initialEstimatedCandidateSalary.set(estimatedCandidateSalary);
+      this.candidateSalaryJustification.set(this.normalizeMaybeText(cvAnalysis.candidateSalaryJustification));
+      const extractedCandidateSalary = this.normalizeSalaryText(cvAnalysis.candidateInfo?.expectedSalaryFromCv);
+      const cachedCandidateSalary = this.normalizeSalaryText(this.appState.expectedSalary());
+      if (extractedCandidateSalary) {
+        this.candidateSalarySource.set('extracted');
+        this.appState.expectedSalary.set(extractedCandidateSalary);
+      } else if (cachedCandidateSalary) {
+        this.candidateSalarySource.set('cached-manual');
+        this.appState.expectedSalary.set(cachedCandidateSalary);
+      } else {
+        this.candidateSalarySource.set('estimated');
+        this.appState.expectedSalary.set('');
+      }
+
+      this.view.set('confirmingSkills');
     } catch (error: any) {
       this.userError.set(`Analysis failed: ${error.message}`);
       this.view.set('input');
@@ -160,6 +255,8 @@ export class AppComponent {
         highlightedSkills: this.appState.highlightedSkills(),
         expectedSalary: this.appState.expectedSalary(),
         editedJobSalary: this.appState.jobSalaryInfo(),
+        initialEstimatedJobSalary: this.estimatedJobSalary(),
+        initialEstimatedCandidateSalary: this.initialEstimatedCandidateSalary(),
       });
       if (result) {
         this.analysisResult.set(result);
@@ -189,5 +286,10 @@ export class AppComponent {
 
   handleExpectedSalaryChange(salary: string) {
     this.appState.expectedSalary.set(salary);
+  }
+
+  handleHighlightedSkillsChange(skills: string[]) {
+    this.appState.highlightedSkills.set(skills);
+    this.appState.setSkillsForCv(this.appState.cvText(), skills);
   }
 }

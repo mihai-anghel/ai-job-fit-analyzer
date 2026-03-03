@@ -16,6 +16,7 @@ export class AppStateService {
 
   // Highlighted Skills & Salary State
   highlightedSkills: WritableSignal<string[]>;
+  cvSkillSelections: WritableSignal<Record<string, string[]>>;
   expectedSalary: WritableSignal<string>;
   jobSalaryInfo: WritableSignal<string>;
 
@@ -38,9 +39,12 @@ export class AppStateService {
     this.cvText = signal(this.persistenceService.load<string>(APP_STATE_KEYS.CV_TEXT) ?? '');
     this.cvFileName = signal(this.persistenceService.load<string>(APP_STATE_KEYS.CV_FILE_NAME) ?? '');
     this.highlightedSkills = signal(this.persistenceService.load<string[]>(APP_STATE_KEYS.HIGHLIGHTED_SKILLS) ?? []);
+    this.cvSkillSelections = signal(this.persistenceService.load<Record<string, string[]>>(APP_STATE_KEYS.CV_SKILL_SELECTIONS) ?? {});
     this.expectedSalary = signal(this.persistenceService.load<string>(APP_STATE_KEYS.EXPECTED_SALARY) ?? '');
     this.jobSalaryInfo = signal(this.persistenceService.load<string>(APP_STATE_KEYS.JOB_SALARY_INFO) ?? '');
-    this.provider = signal(this.persistenceService.load<AiProvider>(APP_STATE_KEYS.PROVIDER) ?? 'gemini');
+    const storedProvider = this.persistenceService.load<AiProvider>(APP_STATE_KEYS.PROVIDER);
+    const initialProvider = storedProvider && AVAILABLE_PROVIDERS.includes(storedProvider) ? storedProvider : 'gemini';
+    this.provider = signal(initialProvider);
     this.models = signal(
       this.persistenceService.load<{ [key in AiProvider]: string }>(APP_STATE_KEYS.MODELS) ?? DEFAULT_MODELS
     );
@@ -56,6 +60,7 @@ export class AppStateService {
     effect(() => this.persistenceService.save(APP_STATE_KEYS.CV_TEXT, this.cvText()));
     effect(() => this.persistenceService.save(APP_STATE_KEYS.CV_FILE_NAME, this.cvFileName()));
     effect(() => this.persistenceService.save(APP_STATE_KEYS.HIGHLIGHTED_SKILLS, this.highlightedSkills()));
+    effect(() => this.persistenceService.save(APP_STATE_KEYS.CV_SKILL_SELECTIONS, this.cvSkillSelections()));
     effect(() => this.persistenceService.save(APP_STATE_KEYS.EXPECTED_SALARY, this.expectedSalary()));
     effect(() => this.persistenceService.save(APP_STATE_KEYS.JOB_SALARY_INFO, this.jobSalaryInfo()));
     effect(() => this.persistenceService.save(APP_STATE_KEYS.MODELS, this.models()));
@@ -83,6 +88,33 @@ export class AppStateService {
   setCv(text: string, fileName: string = '') {
     this.cvText.set(text);
     this.cvFileName.set(fileName);
+  }
+
+  private getCvCacheKey(cvText: string): string {
+    const normalized = (cvText ?? '').replace(/\r\n/g, '\n').trim();
+    let hash = 0;
+    for (let i = 0; i < normalized.length; i++) {
+      hash = ((hash << 5) - hash) + normalized.charCodeAt(i);
+      hash |= 0;
+    }
+    return `cv_${hash}`;
+  }
+
+  getSkillsForCv(cvText: string): string[] {
+    const key = this.getCvCacheKey(cvText);
+    return this.cvSkillSelections()[key] ?? [];
+  }
+
+  setSkillsForCv(cvText: string, skills: string[]) {
+    const key = this.getCvCacheKey(cvText);
+    const uniqueSkills = [...new Set(skills.map(s => s.trim()).filter(Boolean))];
+    this.cvSkillSelections.update(map => ({ ...map, [key]: uniqueSkills }));
+  }
+
+  setProvider(provider: AiProvider) {
+    this.provider.set(provider);
+    // Persist immediately to avoid any edge case where the reactive effect doesn't flush before refresh.
+    this.persistenceService.save(APP_STATE_KEYS.PROVIDER, provider);
   }
 
   clearJd() {
