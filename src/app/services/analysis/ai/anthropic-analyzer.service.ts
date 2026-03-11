@@ -17,8 +17,7 @@ import {
   MASTER_PROMPT_RULES
 } from './ai-schemas';
 import { SCORING_WEIGHTS } from '../analysis-logic';
-
-declare var Anthropic: any; // From CDN
+import { getProviderApiUrl } from '../../../config/ai-providers.config';
 
 @Injectable({ providedIn: 'root' })
 export class AnthropicAnalyzerService extends AnalysisService {
@@ -26,7 +25,7 @@ export class AnthropicAnalyzerService extends AnalysisService {
   public readonly error = this._error.asReadonly();
   public readonly provider = 'anthropic';
   
-  private anthropic: any | null = null;
+  private apiKey: string | null = null;
   public model: string | null = null;
 
   constructor() {
@@ -34,22 +33,8 @@ export class AnthropicAnalyzerService extends AnalysisService {
   }
   
   override initialize(apiKey: string): void {
-    if (apiKey && apiKey.trim() && typeof Anthropic !== 'undefined') {
-      try {
-        // Note: Anthropic's browser SDK requires a proxy. In AI Studio's environment, this is handled.
-        // For local development, a proxy would need to be configured.
-        this.anthropic = new Anthropic({ apiKey });
-        this._error.set(null);
-      } catch (e: any) {
-        this.anthropic = null;
-        this._error.set(`Failed to initialize Anthropic client: ${e.message}`);
-      }
-    } else if (apiKey && apiKey.trim() && typeof Anthropic === 'undefined') {
-      this.anthropic = null;
-      this._error.set("Anthropic SDK failed to load. Please check your internet connection or try refreshing.");
-    } else {
-      this.anthropic = null;
-    }
+    this.apiKey = apiKey?.trim() ? apiKey.trim() : null;
+    this._error.set(null);
   }
 
   override configure(model: string): void {
@@ -87,55 +72,74 @@ ${schemaString}`;
   }
 
   private async _generateJsonContent<T>(prompt: { systemPrompt: string, userPrompt: string }): Promise<T | null> {
-    if (!this.anthropic) {
-        this._error.set("AI service is not initialized. Please configure the Anthropic API Key.");
-        return null;
-    }
     if (!this.model) {
         this._error.set("AI model is not configured.");
         return null;
     }
-
-    let response;
-    try {
-        response = await this.anthropic.messages.create({
-            model: this.model,
-            system: prompt.systemPrompt,
-            messages: [{ role: "user", content: prompt.userPrompt }],
-            max_tokens: 4096, // A reasonable max for complex JSON
-            temperature: 0,
-            top_p: 1,
-        });
-    } catch (e: any) {
-        console.error("Error during Anthropic API call:", e);
-        let userFriendlyMessage = "An unexpected API error occurred during analysis.";
-        // Anthropic SDK throws structured errors
-        if (e?.status) {
-            switch(e.status) {
-                case 401:
-                    userFriendlyMessage = "Anthropic API Error: Invalid API Key. Please check your key and try again.";
-                    break;
-                case 429:
-                    userFriendlyMessage = "Anthropic API Error: Rate limit or quota exceeded. Please check your plan and billing details.";
-                    break;
-                case 500:
-                    userFriendlyMessage = "Anthropic API Error: The server had an error while processing your request. Please try again later.";
-                    break;
-                default:
-                    userFriendlyMessage = `Anthropic API Error: ${e.message || 'An unknown error occurred.'} (Status: ${e.status})`;
-            }
-        } else if (e.message) {
-            userFriendlyMessage = e.message;
-        }
-        
-        this._error.set(userFriendlyMessage);
+    if (!this.apiKey) {
+        this._error.set('Anthropic API key is not configured.');
         return null;
     }
 
-    const rawText = response.content?.[0]?.text?.trim();
+    const endpoint = getProviderApiUrl('anthropic');
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'anthropic-version': '2023-06-01',
+      'x-api-key': this.apiKey,
+    };
+
+    const payload = {
+      model: this.model,
+      system: prompt.systemPrompt,
+      messages: [{ role: 'user', content: prompt.userPrompt }],
+      max_tokens: 4096,
+      temperature: 0,
+      top_p: 1,
+    };
+
+    let response: Response;
+    let body: any;
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 45000);
+    try {
+        response = await fetch(endpoint, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify(payload),
+            signal: controller.signal,
+        });
+        body = await response.json();
+    } catch (e: any) {
+        if (e?.name === 'AbortError') {
+            this._error.set('Anthropic request timed out after 45 seconds. Please try again.');
+            return null;
+        }
+        console.error("Error during Anthropic API call:", e);
+        this._error.set('Failed to reach Anthropic. Check your network and configured Anthropic API URL.');
+        return null;
+    } finally {
+        clearTimeout(timeoutId);
+    }
+
+    if (!response.ok) {
+      const status = response.status;
+      const upstreamMessage = body?.error?.message || body?.error || 'Request failed';
+      let userFriendlyMessage = `Anthropic API Error: ${upstreamMessage} (Status: ${status})`;
+      if (status === 401) {
+        userFriendlyMessage = 'Anthropic API Error: Invalid API key.';
+      } else if (status === 429) {
+        userFriendlyMessage = 'Anthropic API Error: Rate limit or quota exceeded.';
+      } else if (status === 500) {
+        userFriendlyMessage = 'Anthropic API Error: Server error while processing your request.';
+      }
+      this._error.set(userFriendlyMessage);
+      return null;
+    }
+
+    const rawText = body?.content?.[0]?.text?.trim();
 
     if (!rawText) {
-        const stopReason = response.stop_reason;
+        const stopReason = body?.stop_reason;
         if (stopReason === 'max_tokens') {
             this._error.set('The AI response was too long and was cut off. This can happen with very large documents.');
         } else {

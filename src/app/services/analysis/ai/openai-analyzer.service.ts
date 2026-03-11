@@ -17,8 +17,7 @@ import {
   MASTER_PROMPT_RULES
 } from './ai-schemas';
 import { SCORING_WEIGHTS } from '../analysis-logic';
-
-declare var OpenAI: any; // From CDN
+import { getProviderApiUrl } from '../../../config/ai-providers.config';
 
 @Injectable({ providedIn: 'root' })
 export class OpenAiAnalyzerService extends AnalysisService {
@@ -26,7 +25,7 @@ export class OpenAiAnalyzerService extends AnalysisService {
   public readonly error = this._error.asReadonly();
   public readonly provider = 'openai';
   
-  private openai: any | null = null;
+  private apiKey: string | null = null;
   public model: string | null = null;
 
   constructor() {
@@ -34,20 +33,8 @@ export class OpenAiAnalyzerService extends AnalysisService {
   }
   
   override initialize(apiKey: string): void {
-    if (apiKey && apiKey.trim() && typeof OpenAI !== 'undefined') {
-      try {
-        this.openai = new OpenAI({ apiKey, dangerouslyAllowBrowser: true });
-        this._error.set(null);
-      } catch (e: any) {
-        this.openai = null;
-        this._error.set(`Failed to initialize OpenAI client: ${e.message}`);
-      }
-    } else if (apiKey && apiKey.trim() && typeof OpenAI === 'undefined') {
-      this.openai = null;
-      this._error.set("OpenAI SDK failed to load. Please check your internet connection or try refreshing.");
-    } else {
-      this.openai = null;
-    }
+    this.apiKey = apiKey?.trim() ? apiKey.trim() : null;
+    this._error.set(null);
   }
 
   override configure(model: string): void {
@@ -82,58 +69,76 @@ ${schemaString}`;
   }
 
   private async _generateJsonContent<T>(prompt: { systemPrompt: string, userPrompt: string }): Promise<T | null> {
-    if (!this.openai) {
-        this._error.set("AI service is not initialized. Please configure the OpenAI API Key.");
-        return null;
-    }
     if (!this.model) {
         this._error.set("AI model is not configured.");
         return null;
     }
-
-    let response;
-    try {
-        response = await this.openai.chat.completions.create({
-            model: this.model,
-            messages: [
-                { role: "system", content: prompt.systemPrompt },
-                { role: "user", content: prompt.userPrompt }
-            ],
-            response_format: { type: "json_object" },
-            temperature: 0,
-            seed: 42,
-            top_p: 1,
-        });
-    } catch (e: any) {
-        console.error("Error during OpenAI API call:", e);
-        let userFriendlyMessage = "An unexpected API error occurred during analysis.";
-        // The OpenAI SDK throws structured errors
-        if (e.status) {
-            switch(e.status) {
-                case 401:
-                    userFriendlyMessage = "OpenAI API Error: Invalid API Key. Please check your key and try again.";
-                    break;
-                case 429:
-                    userFriendlyMessage = "OpenAI API Error: Rate limit or quota exceeded. Please check your plan and billing details.";
-                    break;
-                case 500:
-                    userFriendlyMessage = "OpenAI API Error: The server had an error while processing your request. Please try again later.";
-                    break;
-                default:
-                    userFriendlyMessage = `OpenAI API Error: ${e.message || 'An unknown error occurred.'} (Status: ${e.status})`;
-            }
-        } else if (e.message) {
-            userFriendlyMessage = e.message;
-        }
-        
-        this._error.set(userFriendlyMessage);
+    if (!this.apiKey) {
+        this._error.set('OpenAI API key is not configured.');
         return null;
     }
 
-    const jsonString = response.choices?.[0]?.message?.content?.trim();
+    const endpoint = getProviderApiUrl('openai');
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${this.apiKey}`,
+    };
+
+    const payload = {
+      model: this.model,
+      messages: [
+        { role: 'system', content: prompt.systemPrompt },
+        { role: 'user', content: prompt.userPrompt }
+      ],
+      response_format: { type: 'json_object' },
+      temperature: 0,
+      seed: 42,
+      top_p: 1,
+    };
+
+    let response: Response;
+    let body: any;
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 45000);
+    try {
+        response = await fetch(endpoint, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify(payload),
+            signal: controller.signal,
+        });
+        body = await response.json();
+    } catch (e: any) {
+        if (e?.name === 'AbortError') {
+            this._error.set('OpenAI request timed out after 45 seconds. Please try again.');
+            return null;
+        }
+        console.error("Error during OpenAI API call:", e);
+        this._error.set('Failed to reach OpenAI. Check your network and configured OpenAI API URL.');
+        return null;
+    } finally {
+        clearTimeout(timeoutId);
+    }
+
+    if (!response.ok) {
+      const status = response.status;
+      const upstreamMessage = body?.error?.message || body?.error || 'Request failed';
+      let userFriendlyMessage = `OpenAI API Error: ${upstreamMessage} (Status: ${status})`;
+      if (status === 401) {
+        userFriendlyMessage = 'OpenAI API Error: Invalid API key.';
+      } else if (status === 429) {
+        userFriendlyMessage = 'OpenAI API Error: Rate limit or quota exceeded.';
+      } else if (status === 500) {
+        userFriendlyMessage = 'OpenAI API Error: Server error while processing your request.';
+      }
+      this._error.set(userFriendlyMessage);
+      return null;
+    }
+
+    const jsonString = body?.choices?.[0]?.message?.content?.trim();
 
     if (!jsonString) {
-        const finishReason = response.choices?.[0]?.finish_reason;
+        const finishReason = body?.choices?.[0]?.finish_reason;
         if (finishReason === 'content_filter') {
             this._error.set('The response was blocked due to OpenAI\'s safety system. Please review your input documents for sensitive content.');
         } else {

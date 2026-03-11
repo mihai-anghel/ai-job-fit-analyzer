@@ -25,16 +25,8 @@ Return an object matching `AnalysisResult` (see `src/app/models/analysis.model.t
 - `dimensionalAnalysis`, `strengths`, `concerns`, `jobSummary`, `candidateSummary`, `overallScore`, etc.
 
 ## Tools & Interfaces
-- `POST /api/openai` — server-side proxy to call OpenAI (accepts model, messages/prompt, and returns model output JSON).
-- `POST /api/anthropic` — server-side proxy to call Anthropic.
 - Local parsers: `PdfParserService`, `DocxParserService`, `TxtParserService`.
 - Persistence (caching) via `PERSISTENCE_SERVICE`.
-
-Example proxy payload (OpenAI):
-```
-POST /api/openai
-{ "model": "gpt-4o", "messages": [ {"role":"system","content":"..."}, {"role":"user","content":"..."} ] }
-```
 
 ## Prompting & Parameters
 - Use structured prompts that request strict JSON output according to schemas defined in `src/app/services/analysis/ai/ai-schemas.ts`.
@@ -45,7 +37,6 @@ POST /api/openai
 - On malformed JSON: attempt a single "fixup" prompt asking model to return valid JSON; if still invalid, surface an error to UI.
 
 ## Safety & Privacy
-- API keys MUST NOT be placed in frontend code. Use the proxy to store secrets in env vars.
 - Redact or omit PII when logging.
 
 ## Tests / QA
@@ -56,7 +47,6 @@ POST /api/openai
 - Log request id, provider used, model, latency, and success/failure status.
 
 ## Deployment Notes
-- Run proxy as a small Node service or serverless function; store keys in secret manager.
 - Enforce CORS only for your frontend origin.
 
 ## Open Questions

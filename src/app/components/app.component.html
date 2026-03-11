@@ -10,7 +10,7 @@
         <p class="font-bold">An Error Occurred</p>
         <p>{{ error }}</p>
       </div>
-      <button (click)="userError.set(null)" class="text-red-200 hover:text-white p-2">
+      <button type="button" (click)="userError.set(null)" class="text-red-200 hover:text-white p-2">
         <i class="fa-solid fa-xmark fa-lg"></i>
       </button>
     </div>
@@ -38,7 +38,7 @@
         (reset)="resetForm()"
         [apiKey]="appState.currentApiKey()"
         (apiKeyChange)="handleApiKeyChange($event)"
-        [hasEnvironmentKey]="appState.hasEnvironmentKey && appState.provider() === 'gemini'"
+        [hasEnvironmentKey]="appState.currentHasEnvironmentKey()"
       ></app-input-form>
     }
     @case ('analyzing') {

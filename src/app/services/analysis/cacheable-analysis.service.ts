@@ -22,9 +22,10 @@ import { AnalysisServiceProvider } from './analysis-service.provider';
 
 @Injectable({ providedIn: 'root' })
 export class CacheableAnalysisService extends AnalysisService {
+  private static readonly ANALYSIS_TIMEOUT_MS = 90000;
 
 
-  // Proxy properties from the currently active worker service, provided by the factory.
+  // currently active worker service, provided by the factory.
   public readonly activeWorker: Signal<AnalysisService>;
   
   public readonly error = computed(() => this.activeWorker().error());
@@ -51,6 +52,19 @@ export class CacheableAnalysisService extends AnalysisService {
   override initialize(_apiKey: string): void { }
   override configure(_model: string): void { }
 
+  private async withTimeout<T>(operation: Promise<T>, label: string): Promise<T> {
+    return new Promise<T>((resolve, reject) => {
+      const timeoutId = setTimeout(() => {
+        reject(new Error(`${label} timed out after ${CacheableAnalysisService.ANALYSIS_TIMEOUT_MS / 1000}s`));
+      }, CacheableAnalysisService.ANALYSIS_TIMEOUT_MS);
+
+      operation
+        .then((value) => resolve(value))
+        .catch((error) => reject(error))
+        .finally(() => clearTimeout(timeoutId));
+    });
+  }
+
   private canonicalizeDocumentText(text: string): string {
     const normalized = (text ?? '').replace(/\r\n/g, '\n');
     const lines = normalized.split('\n');
@@ -71,18 +85,45 @@ export class CacheableAnalysisService extends AnalysisService {
       .trim();
   }
 
+  private normalizeOptionalText(value: string | undefined): string | undefined {
+    const normalized = value?.trim();
+    return normalized ? normalized : undefined;
+  }
+
+  private normalizeSkills(skills: string[] | undefined): string[] {
+    if (!skills || skills.length === 0) return [];
+    return [...new Set(skills.map(s => s.trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b));
+  }
+
+  private stableStringify(value: unknown): string {
+    if (value === null || typeof value !== 'object') {
+      return JSON.stringify(value);
+    }
+    if (Array.isArray(value)) {
+      return `[${value.map(v => this.stableStringify(v)).join(',')}]`;
+    }
+    const obj = value as Record<string, unknown>;
+    const keys = Object.keys(obj).sort();
+    return `{${keys.map(k => `${JSON.stringify(k)}:${this.stableStringify(obj[k])}`).join(',')}}`;
+  }
+
 
 
   // --- Granular Caching Implementation (Now state-aware) ---
   
   override async analyzeCv(input: CvAnalysisInput): Promise<CvAnalysisData | null> {
-    const normalizedCvText = this.canonicalizeDocumentText(input.cvText);
-    const normalizedInput: CvAnalysisInput = { ...input, cvText: normalizedCvText };
-    const cacheKey = `cv-analysis-${this.provider}-${this.model}-${normalizedCvText}`;
+    const normalizedInput: CvAnalysisInput = {
+      ...input,
+      cvText: this.canonicalizeDocumentText(input.cvText),
+    };
+    const cacheKey = `cv-analysis-${this.provider}-${this.model}-${this.stableStringify(normalizedInput)}`;
     const cached = this.cache.load<CachedCvAnalysisData>(cacheKey);
     if (cached) return cached;
 
-    const result = await this.activeWorker().analyzeCv(normalizedInput);
+    const result = await this.withTimeout(
+      this.activeWorker().analyzeCv(normalizedInput),
+      'CV analysis'
+    );
     if (result) {
       this.cache.save(cacheKey, result);
     }
@@ -90,13 +131,19 @@ export class CacheableAnalysisService extends AnalysisService {
   }
   
   override async analyzeJd(input: JdAnalysisInput): Promise<JdAnalysisData | null> {
-    const normalizedJdText = this.canonicalizeDocumentText(input.jdText);
-    const normalizedInput: JdAnalysisInput = { ...input, jdText: normalizedJdText };
-    const cacheKey = `jd-analysis-${this.provider}-${this.model}-${normalizedJdText}`;
+    const normalizedInput: JdAnalysisInput = {
+      ...input,
+      jdText: this.canonicalizeDocumentText(input.jdText),
+      fallbackLocation: this.normalizeOptionalText(input.fallbackLocation),
+    };
+    const cacheKey = `jd-analysis-${this.provider}-${this.model}-${this.stableStringify(normalizedInput)}`;
     const cached = this.cache.load<CachedJdAnalysisData>(cacheKey);
     if (cached) return cached;
 
-    const result = await this.activeWorker().analyzeJd(normalizedInput);
+    const result = await this.withTimeout(
+      this.activeWorker().analyzeJd(normalizedInput),
+      'JD analysis'
+    );
     if (result) {
       this.cache.save(cacheKey, result);
     }
@@ -108,13 +155,20 @@ export class CacheableAnalysisService extends AnalysisService {
       ...input,
       jdText: this.canonicalizeDocumentText(input.jdText),
       cvText: this.canonicalizeDocumentText(input.cvText),
+      highlightedSkills: this.normalizeSkills(input.highlightedSkills),
+      expectedSalary: this.normalizeOptionalText(input.expectedSalary),
+      editedJobSalary: this.normalizeOptionalText(input.editedJobSalary),
+      initialEstimatedJobSalary: this.normalizeOptionalText(input.initialEstimatedJobSalary),
+      initialEstimatedCandidateSalary: this.normalizeOptionalText(input.initialEstimatedCandidateSalary),
     };
-    const skillsKey = input.highlightedSkills?.join(',');
-    const cacheKey = `fit-analysis-${this.provider}-${this.model}-${normalizedInput.jdText}-${normalizedInput.cvText}-${skillsKey}`;
+    const cacheKey = `fit-analysis-${this.provider}-${this.model}-${this.stableStringify(normalizedInput)}`;
     const cached = this.cache.load<CachedFitAnalysisData>(cacheKey);
     if (cached) return cached;
 
-    const result = await this.activeWorker().analyzeFit(normalizedInput);
+    const result = await this.withTimeout(
+      this.activeWorker().analyzeFit(normalizedInput),
+      'Fit analysis'
+    );
     if (result) {
       this.cache.save(cacheKey, result);
     }
@@ -130,12 +184,25 @@ export class CacheableAnalysisService extends AnalysisService {
     this.activeWorker().initialize(this.appState.currentApiKey());
     this.activeWorker().configure(this.appState.currentModel());
 
-    // Parallelize the three analyses to reduce total runtime
-    const [cvAnalysis, jdAnalysis, fitAnalysis] = await Promise.all([
-      this.analyzeCv(input),
-      this.analyzeJd(input),
-      this.analyzeFit(input),
-    ]);
+    let cvAnalysis: CvAnalysisData | null;
+    let jdAnalysis: JdAnalysisData | null;
+    let fitAnalysis: FitAnalysisData | null;
+
+    if (this.provider === 'gemini') {
+      // Gemini free-tier limits are sensitive to bursts; run sequentially.
+      cvAnalysis = await this.analyzeCv(input);
+      if (!cvAnalysis) return null;
+      jdAnalysis = await this.analyzeJd(input);
+      if (!jdAnalysis) return null;
+      fitAnalysis = await this.analyzeFit(input);
+    } else {
+      // Parallelize to reduce total runtime for other providers.
+      [cvAnalysis, jdAnalysis, fitAnalysis] = await Promise.all([
+        this.analyzeCv(input),
+        this.analyzeJd(input),
+        this.analyzeFit(input),
+      ]);
+    }
 
     if (!cvAnalysis || !jdAnalysis || !fitAnalysis) return null;
 

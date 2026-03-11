@@ -12,7 +12,7 @@
       <div class="flex items-center space-x-2 text-purple-300 bg-slate-700/50 px-3 py-1 rounded-full text-sm">
         <i class="fa-solid fa-file-lines"></i>
         <span class="truncate max-w-[200px] sm:max-w-xs">{{ fileName() }}</span>
-        <button (click)="onClearFile($event)" class="text-slate-400 hover:text-white z-10 flex-shrink-0">
+        <button type="button" (click)="onClearFile($event)" class="text-slate-400 hover:text-white z-10 flex-shrink-0">
           <i class="fa-solid fa-xmark"></i>
         </button>
       </div>

@@ -1,2 +1,4 @@
-// Required by jest-preset-angular
-import 'jest-preset-angular/setup-jest';
+// Use Angular's zoneless test environment (no zone.js).
+import { setupZonelessTestEnv } from 'jest-preset-angular/setup-env/zoneless';
+
+setupZonelessTestEnv();

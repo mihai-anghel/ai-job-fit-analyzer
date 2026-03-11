@@ -19,6 +19,12 @@ View your app in AI Studio: https://ai.studio/apps/fd9c44bf-1250-4d45-84cd-d0217
 3. Run the app:
    `npm run dev`
 
+Optional runtime env:
+- `GEMINI_API_KEY` (fallback `API_KEY`)
+- `OPENAI_API_KEY`
+- `ANTHROPIC_API_KEY`
+- `DEFAULT_PROVIDER` (or `AI_DEFAULT_PROVIDER`: `gemini|openai|anthropic`)
+
 ---
 
 ## Running Unit Tests

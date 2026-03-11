@@ -10,7 +10,6 @@ AI Job Fit Analyzer is a small Angular 18 application that allows users to uploa
 - `src/app/services` – business logic, parsers, persistence and AI integrations.
 - `src/app/models` – TypeScript interfaces used across the app.
 - `docs/agents` – design/spec documentation for AI agents.
-- `tools/proxy` – minimal Express proxy for securely handling API keys.
 
 ---
 
@@ -60,7 +59,6 @@ _No routing; conditional rendering via `view` signal._
 - Angular 18, Tailwind, pdfjs-dist, mammoth.
 - AI SDKs: `openai`, `@anthropic-ai/sdk`.
 - Development: Yarn, Jest, ts‑jest, jest‑preset‑angular.
-- Proxy server optional (see `tools/proxy/index.js`).
 
 ## 6. Build & Env
 - `yarn start`, `yarn test`, `tsconfig.json` etc.
@@ -71,4 +69,3 @@ _No routing; conditional rendering via `view` signal._
 - Expand automated tests.
 - Plan CI/CD pipeline with build, test, and (optionally) deploy steps.
 - Consider adding a router if multi‑page flows are required.
-- Secure API keys via backend proxy or cloud secret store.

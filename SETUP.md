@@ -25,12 +25,27 @@ Angular 18 application that analyzes job descriptions and CVs using LLMs (Gemini
    yarn lint
    ```
 
+## Runtime Environment Configuration
+
+The frontend can read runtime environment variables (when your host/platform injects `process.env`).
+
+- `GEMINI_API_KEY` (fallback: `API_KEY`) - preconfigures Gemini key
+- `OPENAI_API_KEY` - preconfigures OpenAI key
+- `ANTHROPIC_API_KEY` - preconfigures Anthropic key
+- `GEMINI_API_URL` - overrides Gemini API base URL (default: `https://generativelanguage.googleapis.com/v1beta`)
+- `OPENAI_API_URL` - overrides OpenAI endpoint URL (default: `https://api.openai.com/v1/chat/completions`)
+- `ANTHROPIC_API_URL` - overrides Anthropic endpoint URL (default: `https://api.anthropic.com/v1/messages`)
+- `DEFAULT_PROVIDER` (or `AI_DEFAULT_PROVIDER`) - sets startup provider (`gemini`, `openai`, `anthropic`)
+
+Behavior:
+- If a provider key is preconfigured in env, that provider's key field is locked in the UI.
+- If a provider key is not in env, its key field is editable by the user.
+
 ## Project Structure
 - `src/app/components` – standalone UI components and templates.
 - `src/app/services` – business logic, parsers, AI providers, state persistence.
 - `src/app/models` – TypeScript interfaces for analysis results and inputs.
 - `docs/` – design docs, agent specs, architecture plans.
-- `tools/proxy` – simple Express proxy for handling API keys securely.
 
 ## Development Best Practices
 
@@ -38,7 +53,7 @@ Angular 18 application that analyzes job descriptions and CVs using LLMs (Gemini
 - Commit frequently with clear messages; use `git rebase` to keep history clean.
 - A CI workflow (`.github/workflows/ci.yml`) runs on each push/PR to lint, test, and build.
 - Add ESLint/Prettier for consistent formatting (configs are included).
-- Avoid committing secrets; store API keys in environment variables or use the proxy.
+- Avoid committing secrets; store API keys in environment variables.
 - When adding new features, update or add tests and documentation.
 
 ## Building & Deployment

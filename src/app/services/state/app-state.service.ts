@@ -29,7 +29,15 @@ export class AppStateService {
   models: WritableSignal<{ [key in AiProvider]: string }>;
 
   apiKeys: WritableSignal<{ [key in AiProvider]?: string }>;
-  readonly hasEnvironmentKey = typeof process !== 'undefined' && !!process.env?.['API_KEY'];
+  private readonly runtimeEnv = (globalThis as any)?.process?.env as Record<string, string | undefined> | undefined;
+  private readonly environmentApiKeys: { [key in AiProvider]?: string } = {
+    gemini: this.runtimeEnv?.['GEMINI_API_KEY']?.trim() || this.runtimeEnv?.['API_KEY']?.trim(),
+    openai: this.runtimeEnv?.['OPENAI_API_KEY']?.trim(),
+    anthropic: this.runtimeEnv?.['ANTHROPIC_API_KEY']?.trim(),
+  };
+  private readonly configuredDefaultProvider = this.resolveDefaultProvider(
+    this.runtimeEnv?.['DEFAULT_PROVIDER'] ?? this.runtimeEnv?.['AI_DEFAULT_PROVIDER']
+  );
 
   constructor(
     @Inject(PERSISTENCE_SERVICE) private persistenceService: PersistenceService
@@ -43,14 +51,19 @@ export class AppStateService {
     this.expectedSalary = signal(this.persistenceService.load<string>(APP_STATE_KEYS.EXPECTED_SALARY) ?? '');
     this.jobSalaryInfo = signal(this.persistenceService.load<string>(APP_STATE_KEYS.JOB_SALARY_INFO) ?? '');
     const storedProvider = this.persistenceService.load<AiProvider>(APP_STATE_KEYS.PROVIDER);
-    const initialProvider = storedProvider && AVAILABLE_PROVIDERS.includes(storedProvider) ? storedProvider : 'gemini';
+    const initialProvider =
+      this.configuredDefaultProvider ??
+      (storedProvider && AVAILABLE_PROVIDERS.includes(storedProvider) ? storedProvider : 'gemini');
     this.provider = signal(initialProvider);
     this.models = signal(
       this.persistenceService.load<{ [key in AiProvider]: string }>(APP_STATE_KEYS.MODELS) ?? DEFAULT_MODELS
     );
     const initialApiKeys = this.persistenceService.load<{ [key in AiProvider]?: string }>(APP_STATE_KEYS.API_KEYS, { obfuscate: true }) ?? { gemini: '', openai: '', anthropic: '' };
-    if (this.hasEnvironmentKey) {
-      initialApiKeys.gemini = (typeof process !== 'undefined' ? (process as any).env?.['API_KEY'] : undefined);
+    for (const provider of AVAILABLE_PROVIDERS) {
+      const envKey = this.environmentApiKeys[provider];
+      if (envKey) {
+        initialApiKeys[provider] = envKey;
+      }
     }
     this.apiKeys = signal(initialApiKeys);
 
@@ -67,9 +80,10 @@ export class AppStateService {
     effect(() => this.persistenceService.save(APP_STATE_KEYS.PROVIDER, this.provider()));
     effect(() => {
       const keysToSave = { ...this.apiKeys() };
-      if (this.hasEnvironmentKey) {
-        // Do not persist the environment key for Gemini if it's from the environment
-        delete keysToSave.gemini;
+      for (const provider of AVAILABLE_PROVIDERS) {
+        if (this.environmentApiKeys[provider]) {
+          delete keysToSave[provider];
+        }
       }
       this.persistenceService.save(APP_STATE_KEYS.API_KEYS, keysToSave, { obfuscate: true });
     });
@@ -78,6 +92,17 @@ export class AppStateService {
   // Computed signals for easy consumption of the current provider's settings
   currentModel = computed(() => this.models()[this.provider()]);
   currentApiKey = computed(() => this.apiKeys()[this.provider()] ?? '');
+  currentHasEnvironmentKey = computed(() => this.hasEnvironmentKeyFor(this.provider()));
+
+  hasEnvironmentKeyFor(provider: AiProvider): boolean {
+    return !!this.environmentApiKeys[provider];
+  }
+
+  private resolveDefaultProvider(rawProvider: string | undefined): AiProvider | null {
+    if (!rawProvider) return null;
+    const normalized = rawProvider.trim().toLowerCase() as AiProvider;
+    return AVAILABLE_PROVIDERS.includes(normalized) ? normalized : null;
+  }
 
   // State modification methods
   setJd(text: string, fileName: string = '') {

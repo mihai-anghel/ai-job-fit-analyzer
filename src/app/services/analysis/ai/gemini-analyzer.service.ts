@@ -1,5 +1,4 @@
 import { Injectable, signal } from '@angular/core';
-import { GoogleGenAI, Schema, GenerateContentResponse } from "@google/genai";
 
 import { 
   DimensionalAnalysis,
@@ -19,6 +18,7 @@ import {
   MASTER_PROMPT_RULES
 } from './ai-schemas';
 import { SCORING_WEIGHTS } from '../analysis-logic';
+import { getProviderApiUrl } from '../../../config/ai-providers.config';
 
 @Injectable({ providedIn: 'root' })
 export class GeminiAnalyzerService extends AnalysisService {
@@ -26,7 +26,7 @@ export class GeminiAnalyzerService extends AnalysisService {
   public readonly error = this._error.asReadonly();
   public readonly provider = 'gemini';
   
-  private ai: GoogleGenAI | null = null;
+  private apiKey: string | null = null;
   public model: string | null = null;
 
   constructor() {
@@ -34,12 +34,8 @@ export class GeminiAnalyzerService extends AnalysisService {
   }
   
   override initialize(apiKey: string): void {
-    if (apiKey && apiKey.trim()) {
-      this.ai = new GoogleGenAI({ apiKey });
-      this._error.set(null);
-    } else {
-      this.ai = null;
-    }
+    this.apiKey = apiKey?.trim() ? apiKey.trim() : null;
+    this._error.set(null);
   }
 
   override configure(model: string): void {
@@ -51,84 +47,79 @@ export class GeminiAnalyzerService extends AnalysisService {
   }
 
   private async _generateJsonContent<T>(prompt: string, schema: object): Promise<T | null> {
-    if (!this.ai) {
-        this._error.set("AI service is not initialized. Please configure the API Key.");
-        return null;
-    }
      if (!this.model) {
         this._error.set("AI model is not configured.");
         return null;
     }
+    if (!this.apiKey) {
+        this._error.set('Gemini API key is not configured.');
+        return null;
+    }
 
-    let response: GenerateContentResponse;
+    const baseUrl = getProviderApiUrl('gemini').replace(/\/+$/, '');
+    const endpoint = `${baseUrl}/models/${encodeURIComponent(this.model)}:generateContent?key=${encodeURIComponent(this.apiKey)}`;
+
+    const payload = {
+      model: this.model,
+      contents: [{ parts: [{ text: prompt }] }],
+      generationConfig: {
+        responseMimeType: 'application/json',
+        responseSchema: schema,
+        temperature: 0,
+        seed: 42,
+        topK: 1,
+      },
+    };
+
+    let response: Response | null = null;
+    let body: any = null;
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
     try {
-        // wrap request in a 30‑second timeout to avoid indefinite hangs
-        const callPromise = this.ai.models.generateContent({
-            model: this.model,
-            contents: [{ parts: [{ text: prompt }] }],
-            config: {
-                responseMimeType: "application/json",
-                responseSchema: schema as Schema,
-                temperature: 0,
-                seed: 42,
-                topK: 1,
-            }
+        response = await fetch(endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+            signal: controller.signal,
         });
-        response = await Promise.race([
-            callPromise,
-            new Promise<never>((_, rej) =>
-              setTimeout(() => rej(new Error('AI request timed out (30s)')), 30000)
-            )
-        ]);
+        body = await response.json();
     } catch (e: any) {
-        // handle timeout separately for user clarity
-        if (e.message && e.message.includes('timed out')) {
+        clearTimeout(timeoutId);
+        if (e?.name === 'AbortError') {
             this._error.set('The AI service did not respond within 30 seconds. Please check your network or API key.');
             return null;
         }
         console.error("Error during AI content generation API call:", e);
-        
-        let userFriendlyMessage = "An unexpected API error occurred during analysis. Please check the console for details.";
+        this._error.set('Failed to reach Gemini. Check your network and configured Gemini API URL.');
+        return null;
+    } finally {
+        clearTimeout(timeoutId);
+    }
 
-        if (e?.message) {
-            let parsedError;
-            try {
-                // The API error message can be a JSON string. Try to parse it.
-                parsedError = JSON.parse(e.message);
-            } catch (jsonParseError) {
-                // If parsing fails, it's just a regular string message.
-                userFriendlyMessage = e.message;
-                this._error.set(userFriendlyMessage);
-                return null;
-            }
-
-            if (parsedError?.error) {
-                const errorDetails = parsedError.error;
-                if (errorDetails.status === 'RESOURCE_EXHAUSTED' || errorDetails.code === 429) {
-                    userFriendlyMessage = "API quota exceeded. You have made too many requests or your free tier limit has been reached. Please check your Google AI Studio plan and billing details.";
-                } else if (errorDetails.message) {
-                    // Use the message from the API error payload if it exists
-                    userFriendlyMessage = `API Error: ${errorDetails.message}`;
-                }
-            } else {
-                // It was JSON, but not in the expected { error: ... } format.
-                console.error("Received an unhandled JSON error structure:", parsedError);
-                userFriendlyMessage = "An unexpected API error occurred with an unknown format.";
-            }
+    if (!response || !response.ok) {
+        const status = response?.status ?? 0;
+        const errorDetails = body?.error;
+        if (errorDetails?.status === 'RESOURCE_EXHAUSTED' || status === 429) {
+            this._error.set('API quota exceeded. You have made too many requests or your free tier limit has been reached.');
+            return null;
         }
-        
-        this._error.set(userFriendlyMessage);
+        const upstreamMessage = errorDetails?.message || errorDetails || 'Request failed';
+        let message = `Gemini API Error: ${upstreamMessage} (Status: ${status})`;
+        if (status === 401 || status === 403) {
+            message = 'Gemini API Error: Invalid API key or insufficient permissions.';
+        }
+        this._error.set(message);
         return null;
     }
 
-    const jsonString = response.text?.trim();
+    const jsonString = body?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
 
     if (!jsonString) {
-        const blockReason = response.candidates?.[0]?.finishReason;
+        const blockReason = body?.candidates?.[0]?.finishReason;
         if (blockReason === 'SAFETY') {
             const message = 'The response was blocked due to safety concerns. Please review your input documents for sensitive or inappropriate content.';
             this._error.set(message);
-            console.error(message, response.candidates?.[0]?.safetyRatings);
+            console.error(message, body?.candidates?.[0]?.safetyRatings);
         } else {
             this._error.set(`The AI returned an empty response. Finish Reason: ${blockReason || 'Unknown'}.`);
         }

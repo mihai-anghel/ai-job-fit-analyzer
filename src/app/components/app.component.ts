@@ -137,6 +137,9 @@ export class AppComponent {
   }
 
   handleApiKeyChange(apiKey: string) {
+    if (this.appState.currentHasEnvironmentKey()) {
+      return;
+    }
     this.appState.apiKeys.update(keys => ({ ...keys, [this.appState.provider()]: apiKey }));
   }
 
@@ -181,10 +184,21 @@ export class AppComponent {
     this.analysisResult.set(null);
 
     try {
-      const [cvAnalysis, jdAnalysis] = await Promise.all([
-        this.analysisService.analyzeCv({ cvText: this.appState.cvText() }),
-        this.analysisService.analyzeJd({ jdText: this.appState.jdText() }),
-      ]);
+      const isGemini = this.appState.provider() === 'gemini';
+      let cvAnalysis;
+      let jdAnalysis;
+      if (isGemini) {
+        cvAnalysis = await this.analysisService.analyzeCv({ cvText: this.appState.cvText() });
+        if (!cvAnalysis) {
+          throw new Error(this.analysisService.error() ?? 'CV analysis failed.');
+        }
+        jdAnalysis = await this.analysisService.analyzeJd({ jdText: this.appState.jdText() });
+      } else {
+        [cvAnalysis, jdAnalysis] = await Promise.all([
+          this.analysisService.analyzeCv({ cvText: this.appState.cvText() }),
+          this.analysisService.analyzeJd({ jdText: this.appState.jdText() }),
+        ]);
+      }
 
       if (!cvAnalysis || !jdAnalysis) {
         throw new Error(this.analysisService.error() ?? 'Initial analysis failed.');
@@ -258,12 +272,14 @@ export class AppComponent {
         initialEstimatedJobSalary: this.estimatedJobSalary(),
         initialEstimatedCandidateSalary: this.initialEstimatedCandidateSalary(),
       });
-      if (result) {
-        this.analysisResult.set(result);
-        this.view.set('results');
+      if (!result) {
+        throw new Error(this.analysisService.error() ?? 'Refined analysis failed.');
       }
+      this.analysisResult.set(result);
+      this.view.set('results');
     } catch (error: any) {
-      this.userError.set(`Refined analysis failed: ${error.message}`);
+      const detail = this.analysisService.error() ?? error.message;
+      this.userError.set(`Refined analysis failed: ${detail}`);
       this.view.set('confirmingSkills');
     }
   }

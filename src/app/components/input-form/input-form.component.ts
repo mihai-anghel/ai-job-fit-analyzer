@@ -51,6 +51,10 @@ export class InputFormComponent {
     anthropic: 'Anthropic'
   };
 
+  getApiKeyPlaceholder(provider: AiProvider): string {
+    return `Enter ${this.providerDisplayMap[provider] || provider} API Key`;
+  }
+
   handleFileChange(file: File, type: 'jd' | 'cv') {
     if (file) {
       this.fileChange.emit({ file, type });

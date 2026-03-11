@@ -23,7 +23,9 @@ describe('PdfParserService', () => {
       })
     };
 
-    const dummyFile = new File([''], 'a.pdf', { type: 'application/pdf' });
+    const dummyFile = {
+      arrayBuffer: async () => new ArrayBuffer(0),
+    } as File;
     const text = await service.parse(dummyFile);
     expect(text).toBe('hello');
   });

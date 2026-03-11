@@ -37,14 +37,16 @@
             <input 
               [type]="showApiKey() ? 'text' : 'password'"
               class="w-full p-2.5 bg-slate-700 border border-slate-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition pr-10"
-              [placeholder]="'Enter ' + (providerDisplayMap[provider()] || provider()) + ' API Key'"
+              [placeholder]="getApiKeyPlaceholder(provider())"
               [value]="apiKey()"
               (input)="apiKeyChange.emit($any($event.target).value)">
-            <button (click)="toggleApiKeyVisibility()" class="absolute inset-y-0 right-0 px-3 flex items-center text-slate-400 hover:text-white">
+            <button type="button" (click)="toggleApiKeyVisibility()" class="absolute inset-y-0 right-0 px-3 flex items-center text-slate-400 hover:text-white">
               <i class="fa-solid" [class.fa-eye]="!showApiKey()" [class.fa-eye-slash]="showApiKey()"></i>
             </button>
           </div>
-          <p class="text-xs text-slate-500 mt-2">Your key is stored locally in your browser.</p>
+          <p class="text-xs text-slate-500 mt-2">
+            Your key is stored locally in your browser.
+          </p>
         }
       </div>
     </div>
@@ -78,11 +80,11 @@
     <!-- Action Buttons -->
     <div class="mt-8 border-t border-slate-700 pt-6">
       <div class="flex flex-wrap justify-center items-center gap-4">
-        <button (click)="reset.emit()"
+        <button type="button" (click)="reset.emit()"
             class="bg-transparent hover:bg-slate-700 text-slate-300 font-bold hover:text-white py-3 px-8 border border-slate-600 rounded-lg text-lg transition">
             Reset
           </button>
-          <button (click)="analyze.emit()" [disabled]="isAnalyzeDisabled()"
+          <button type="button" (click)="analyze.emit()" [disabled]="isAnalyzeDisabled()"
             class="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-3 px-8 rounded-lg text-lg transition shadow-lg hover:shadow-purple-500/50">
             Run Analysis
           </button>

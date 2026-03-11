@@ -7,12 +7,18 @@
 export const AI_PROVIDERS_CONFIG = {
   gemini: {
     models: ['gemini-2.5-flash'],
+    defaultApiUrl: 'https://generativelanguage.googleapis.com/v1beta',
+    envApiUrlKey: 'GEMINI_API_URL',
   },
   openai: {
     models: ['gpt-4o', 'gpt-4-turbo', 'gpt-3.5-turbo'],
+    defaultApiUrl: 'https://api.openai.com/v1/chat/completions',
+    envApiUrlKey: 'OPENAI_API_URL',
   },
   anthropic: {
     models: ['claude-3-5-sonnet-20240620', 'claude-3-opus-20240229', 'claude-3-haiku-20240307'],
+    defaultApiUrl: 'https://api.anthropic.com/v1/messages',
+    envApiUrlKey: 'ANTHROPIC_API_URL',
   }
 } as const; // 'as const' is crucial for deriving a strict type.
 
@@ -41,3 +47,11 @@ export const DEFAULT_MODELS = Object.entries(AI_PROVIDERS_CONFIG).reduce((acc, [
   acc[provider as AiProvider] = config.models[0];
   return acc;
 }, {} as { [key in AiProvider]: string });
+
+const runtimeEnv = (globalThis as any)?.process?.env as Record<string, string | undefined> | undefined;
+
+export function getProviderApiUrl(provider: AiProvider): string {
+  const config = AI_PROVIDERS_CONFIG[provider];
+  const override = runtimeEnv?.[config.envApiUrlKey]?.trim();
+  return override || config.defaultApiUrl;
+}

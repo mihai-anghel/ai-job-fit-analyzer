@@ -7,6 +7,11 @@ export class PdfParserService implements ParserService {
 
   private async ensurePdfJs(): Promise<any> {
     if (this.pdfjsLib) return this.pdfjsLib;
+    // Allow tests to inject a mocked pdfjsLib without importing the real module.
+    if (typeof window !== 'undefined' && (window as any).pdfjsLib) {
+      this.pdfjsLib = (window as any).pdfjsLib;
+      return this.pdfjsLib;
+    }
     // Use the legacy build which works in browsers
     const mod = await import('pdfjs-dist/legacy/build/pdf');
     this.pdfjsLib = (mod && (mod as any).default) || mod;
@@ -27,7 +32,20 @@ export class PdfParserService implements ParserService {
 
   async parse(file: File): Promise<string> {
     const pdfjs = await this.ensurePdfJs();
-    const arrayBuffer = await file.arrayBuffer();
+    const arrayBuffer =
+      typeof (file as any).arrayBuffer === 'function'
+        ? await file.arrayBuffer()
+        : await new Promise<ArrayBuffer>((resolve, reject) => {
+            if (typeof FileReader === 'undefined') {
+              reject(new Error('FileReader is not available'));
+              return;
+            }
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result as ArrayBuffer);
+            reader.onerror = () =>
+              reject(reader.error ?? new Error('Failed to read file'));
+            reader.readAsArrayBuffer(file as any);
+          });
     const loadingTask = pdfjs.getDocument({ data: arrayBuffer });
     const pdf = await loadingTask.promise;
     let fullText = '';
