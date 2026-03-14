@@ -107,7 +107,7 @@ export class AppComponent {
     return normalizedCv.includes(normalizedSkill);
   }
 
-  private resetAnalysisStateAfterInputChange() {
+  private resetAnalysisStateAfterInputChange(type: 'jd' | 'cv') {
     this.analysisResult.set(null);
     this.suggestedSkills.set([]);
     this.estimatedJobSalary.set('');
@@ -116,6 +116,12 @@ export class AppComponent {
     this.initialEstimatedCandidateSalary.set('');
     this.candidateSalarySource.set('estimated');
     this.candidateSalaryJustification.set('');
+    this.appState.highlightedSkills.set([]);
+    if (type === 'jd') {
+      this.appState.clearJobSalary();
+    } else {
+      this.appState.clearCandidateSalary();
+    }
   }
 
   // Event Handlers
@@ -125,7 +131,7 @@ export class AppComponent {
     } else {
       this.appState.setCv(text);
     }
-    this.resetAnalysisStateAfterInputChange();
+    this.resetAnalysisStateAfterInputChange(type);
   }
 
   handleProviderChange(provider: AiProvider) {
@@ -152,7 +158,7 @@ export class AppComponent {
       } else {
         this.appState.setCv(text, event.file.name);
       }
-      this.resetAnalysisStateAfterInputChange();
+      this.resetAnalysisStateAfterInputChange(event.type);
     } catch (error: any) {
       this.userError.set(`Error parsing file: ${error.message}`);
     }
@@ -164,7 +170,7 @@ export class AppComponent {
     } else {
       this.appState.clearCv();
     }
-    this.resetAnalysisStateAfterInputChange();
+    this.resetAnalysisStateAfterInputChange(type);
 
     if (this.view() === 'results' && !this.appState.jdText() && !this.appState.cvText()) {
       this.view.set('input');
